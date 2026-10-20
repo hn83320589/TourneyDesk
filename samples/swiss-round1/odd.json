@@ -1,0 +1,15 @@
+{
+  // 瑞士制第 1 輪，7 人（奇數）。手算見 README.md
+  "name": "第 1 輪範例（7 人）",
+  "format": "Swiss",
+  "swissRounds": 5,
+  "players": [
+    { "regNo": 1, "name": "林一", "rating": 1500 },
+    { "regNo": 2, "name": "陳二", "rating": 1800 },
+    { "regNo": 3, "name": "張三", "rating": 1650 },
+    { "regNo": 4, "name": "李四", "rating": 1800 },
+    { "regNo": 5, "name": "王五", "rating": 1200 },
+    { "regNo": 6, "name": "趙六", "rating": 1400 },
+    { "regNo": 7, "name": "孫七", "rating": 1550 }
+  ]
+}
