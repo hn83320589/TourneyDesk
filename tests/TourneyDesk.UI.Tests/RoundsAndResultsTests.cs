@@ -8,6 +8,9 @@ namespace TourneyDesk.UI.Tests;
 
 public class RoundsAndResultsTests : UiTestBase
 {
+    /// <summary>背景工作的等待上限（通過時不會等這麼久；CI runner 負載高時需要餘裕）。</summary>
+    private static readonly TimeSpan BackgroundTimeout = TimeSpan.FromSeconds(30);
+
     private IRenderedComponent<RoundsView> RenderRounds() =>
         Render<RoundsView>(p => p.Add(x => x.State, Workspace.State!));
 
@@ -18,7 +21,7 @@ public class RoundsAndResultsTests : UiTestBase
         var cut = RenderRounds();
 
         cut.Find("button.generate-round").Click();
-        cut.WaitForAssertion(() => Assert.Single(Workspace.State!.Rounds), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => Assert.Single(Workspace.State!.Rounds), BackgroundTimeout);
 
         Assert.Equal(RoundStatus.Draft, Workspace.State!.Rounds[0].Status);
         Assert.Null(Workspace.BackgroundWork);
@@ -68,14 +71,14 @@ public class RoundsAndResultsTests : UiTestBase
         OpenWith(SwissFlow.NewSwiss(4).NextRound().Results(GameResult.WhiteWin, GameResult.WhiteWin).NextRound());
         Workspace.Execute(new SetResult(1, 2, GameResult.BlackWin)); // 更正 → 第 2 輪過期
         var cut = RenderRounds();
-        cut.WaitForAssertion(() => Assert.Equal([2], Workspace.StaleRounds.ToArray()), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => Assert.Equal([2], Workspace.StaleRounds.ToArray()), BackgroundTimeout);
         cut.Render(p => p.Add(x => x.State, Workspace.State!));
 
         Assert.Contains("第 2 輪的配對已與發布時的最佳建議不同", cut.Find(".stale-warning").TextContent);
         Assert.Equal(2, Workspace.State!.Rounds.Length); // 系統未自行改動
 
         cut.Find("button.repair").Click();
-        cut.WaitForElement(".dialog ul.impact", TimeSpan.FromSeconds(5));
+        cut.WaitForElement(".dialog ul.impact", BackgroundTimeout);
         Assert.Contains("第 2 輪：已發布，2 場配對、0 筆成績將被清除", cut.Find(".dialog").TextContent);
 
         cut.Find("button.confirm").Click();
@@ -126,7 +129,7 @@ public class RoundsAndResultsTests : UiTestBase
             ct.ThrowIfCancellationRequested();
             return new object();
         });
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await started.Task.WaitAsync(BackgroundTimeout);
         Assert.False(Workspace.Execute(new AddPlayer("X", 1)).Succeeded); // 計算中拒絕變更
         Workspace.CancelBackground();
 

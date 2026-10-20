@@ -183,25 +183,41 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
         _ = RefreshStalenessAsync();
     }
 
-    /// <summary>以目前狀態的快照在背景重新判定過期輪次；狀態再次改變時自動取消並重算。</summary>
+    /// <summary>
+    /// 以目前狀態的快照在背景重新判定過期輪次；狀態再次改變時自動取消並重算。
+    /// 判定只讀取不可變快照，完成後不需回到 UI 執行緒（畫面以 Changed 事件自行 InvokeAsync 重繪），
+    /// 因此以 ConfigureAwait(false) 避免依賴呼叫端的同步內容。
+    /// </summary>
     public async Task RefreshStalenessAsync()
     {
-        _staleCts?.Cancel();
-        if (State is not { Settings.Format: TournamentFormat.Swiss } snapshot || snapshot.Rounds.Count(r => r.IsPublished) < 2)
+        CancellationTokenSource cts;
+        TournamentState snapshot;
+        lock (_staleGate)
         {
-            StaleRounds = [];
-            return;
+            _staleCts?.Cancel();
+            if (State is not { Settings.Format: TournamentFormat.Swiss } current || current.Rounds.Count(r => r.IsPublished) < 2)
+            {
+                StaleRounds = [];
+                IsCheckingStaleness = false;
+                return;
+            }
+
+            snapshot = current;
+            cts = new CancellationTokenSource();
+            _staleCts = cts;
+            IsCheckingStaleness = true;
         }
 
-        var cts = new CancellationTokenSource();
-        _staleCts = cts;
-        IsCheckingStaleness = true;
         Raise();
         try
         {
-            var stale = await Task.Run(() => SwissStaleness.FindStaleRounds(snapshot, 2, null, cts.Token), cts.Token);
-            if (ReferenceEquals(State, snapshot))
-                StaleRounds = stale;
+            var stale = await Task.Run(() => SwissStaleness.FindStaleRounds(snapshot, 2, null, cts.Token), cts.Token)
+                .ConfigureAwait(false);
+            lock (_staleGate)
+            {
+                if (ReferenceEquals(State, snapshot))
+                    StaleRounds = stale;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -209,13 +225,22 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
         }
         finally
         {
-            if (ReferenceEquals(_staleCts, cts))
+            var latest = false;
+            lock (_staleGate)
             {
-                IsCheckingStaleness = false;
-                Raise();
+                if (ReferenceEquals(_staleCts, cts))
+                {
+                    IsCheckingStaleness = false;
+                    latest = true;
+                }
             }
+
+            if (latest)
+                Raise();
         }
     }
+
+    private readonly object _staleGate = new();
 
     private void SetNotice(Notice? notice)
     {
