@@ -208,6 +208,45 @@ public class SwissCommandsTests
         Assert.Empty(SwissStaleness.FindStaleRounds(corrected));
     }
 
+    /// <summary>
+    /// 外部審查回報：在已發布、未登錄的輪次正常退賽，該場判棄權後，不應因參賽者集合改變而被判「過期」
+    /// （過期判定針對的是成績更正，正常退賽不應觸發「從第 k 輪起重新配對」的提示）。
+    /// </summary>
+    [Fact]
+    public void Withdrawal_in_published_round_does_not_make_it_stale()
+    {
+        var s = SwissFlow.NewSwiss(6).NextRound().Results(W, W, W).NextRound().Results(W, W, W).NextRound(); // 第 3 輪已發布未登錄
+        var player = s.GetRound(3).Games[0].Black;
+
+        var withdrawn = s.Then(new WithdrawPlayer(player, 3));
+
+        Assert.True(withdrawn.GetRound(3).Games[0].Result.IsForfeit());
+        Assert.Empty(SwissStaleness.FindStaleRounds(withdrawn).ToArray());
+    }
+
+    [Fact]
+    public void Withdrawal_of_bye_player_in_published_round_does_not_make_it_stale()
+    {
+        var s = SwissFlow.NewSwiss(5).NextRound().Results(W, W).NextRound().Results(W, W).NextRound(); // 第 3 輪有輪空
+        var byePlayer = s.GetRound(3).Bye!.Value;
+
+        var withdrawn = s.Then(new WithdrawPlayer(byePlayer, 3));
+
+        Assert.Null(withdrawn.GetRound(3).Bye);
+        Assert.Empty(SwissStaleness.FindStaleRounds(withdrawn).ToArray());
+    }
+
+    [Fact]
+    public void Withdrawal_does_not_hide_real_staleness_from_corrections()
+    {
+        var s = SwissFlow.NewSwiss(4).NextRound().Results(W, W).NextRound(); // R1 A-D B-C；R2 A-B C-D
+        var withdrawn = s.Then(new WithdrawPlayer(s.Id("D"), 2));
+
+        var corrected = withdrawn.Then(new SetResult(1, 2, B)); // B-C 改為 C 勝 → 第 2 輪建議改變
+
+        Assert.Equal([2], SwissStaleness.FindStaleRounds(corrected).ToArray());
+    }
+
     [Fact]
     public void Manually_adjusted_round_is_not_stale_by_itself()
     {

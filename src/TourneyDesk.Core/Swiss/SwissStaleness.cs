@@ -28,7 +28,7 @@ public static class SwissStaleness
         for (var i = 0; i < candidates.Count; i++)
         {
             var round = candidates[i];
-            var input = SwissRoundInput.FromState(state, round.Number);
+            var input = SwissRoundInput.FromState(AsAtPublication(state, round), round.Number);
             if (!SameParticipants(input, round.EngineProposal!) ||
                 !SwissPairingEngine.Pair(input, null, cancellationToken).Pairing.SameAs(round.EngineProposal!))
             {
@@ -42,11 +42,30 @@ public static class SwissStaleness
         return stale.ToImmutable();
     }
 
-    private static bool SameParticipants(SwissRoundInput input, Pairing proposal)
+    /// <summary>
+    /// 發布後才退賽的選手（出現在該輪引擎建議中、但退賽生效輪 ≤ 該輪）在判定該輪時仍視為參賽者：
+    /// 退賽只是讓他在該輪判棄權（或取消輪空），不是成績更正，不應讓該輪被判過期。
+    /// </summary>
+    private static TournamentState AsAtPublication(TournamentState state, Round round)
+    {
+        var adjusted = state;
+        foreach (var id in Participants(round.EngineProposal!))
+        {
+            if (state.Players.TryGetValue(id, out var p) && p.WithdrawRound is { } w && w <= round.Number)
+                adjusted = adjusted.WithPlayer(p with { WithdrawRound = round.Number + 1 });
+        }
+
+        return adjusted;
+    }
+
+    private static HashSet<int> Participants(Pairing proposal)
     {
         var ids = proposal.Games.SelectMany(g => new[] { g.White, g.Black }).ToHashSet();
         if (proposal.Bye is { } bye)
             ids.Add(bye);
-        return ids.SetEquals(input.Ranked.Select(p => p.Id));
+        return ids;
     }
+
+    private static bool SameParticipants(SwissRoundInput input, Pairing proposal) =>
+        Participants(proposal).SetEquals(input.Ranked.Select(p => p.Id));
 }
