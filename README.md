@@ -1,10 +1,9 @@
 # 賽事裁判台 TourneyDesk
 
-[![CI](https://github.com/OWNER/TourneyDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/TourneyDesk/actions/workflows/ci.yml)
+[![CI](https://github.com/hn83320589/TourneyDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/hn83320589/TourneyDesk/actions/workflows/ci.yml)
 
 社區桌球社的桌面賽事工具：**瑞士制、單循環、雙循環、單淘汰**的自動配對、成績登錄與更正、排名（含完整同分判定）、交叉表與淘汰籤表，並可列印貼在公佈欄的對戰表、匯出 CSV 與單檔 HTML。
 
-> 推送到 GitHub 後，請把徽章網址中的 `OWNER` 換成實際的帳號或組織名稱。
 
 - 每個動作都立即寫入賽事檔（單一 SQLite `.tourney` 檔），**不需要按「儲存」**。
 - 100 層**復原／重做**（需求為至少 50 層），涵蓋所有操作；復原本身也寫入異動紀錄。
@@ -192,7 +191,7 @@ Blossom（`Core/Matching/MaxWeightMatching.cs`）依 Joris van Rantwijk 的 mwma
 dotnet test TourneyDesk.sln -c Release
 ```
 
-共 **305** 個測試案例（Core 248、Data 22、UI 35；Debug 組態下 2 個效能測試標示為略過）。
+共 **307** 個測試案例（Core 249、Data 23、UI 35；Debug 組態下 2 個效能測試標示為略過）。完整的驗收對照見 [docs/test-report.md](docs/test-report.md)。
 
 ### 性質測試（固定種子；失敗時印出可重現的案例種子，`Property.Replay(seed, …)`）
 
@@ -220,12 +219,12 @@ dotnet test TourneyDesk.sln -c Release
 
 ## 效能實測
 
-測量環境：Intel Core i7-13700、32 GB RAM、Windows 11 Pro（10.0.26200）、.NET 9.0（SDK 9.0.315）、**Release** 組態，`dotnet test -c Release --filter Category=Performance`，連續兩次執行結果相近。
+測量環境：Intel Core i7-13700（8P+8E 大小核）、32 GB RAM、Windows 11 Pro（10.0.26200）、.NET 9.0.17（SDK 9.0.315）、**Release** 組態，`dotnet test -c Release --filter Category=Performance`。多次執行之間有波動（執行緒落在效率核心時較慢），下表列出 2026-10-20 驗收時連續三次的單獨量測。
 
 | 項目 | 需求 | 實測 |
 |---|---|---|
-| 瑞士制 400 人，每輪配對（9 輪完整賽事） | < 3 秒 | 第 1～9 輪：171、760、561、455、264、420、325、413、491 ms（**最慢 0.76 秒**） |
-| 400 人、9 輪的積分榜重算 | < 200 ms | **1.4 ms** |
+| 瑞士制 400 人，每輪配對（9 輪完整賽事） | < 3 秒 | 第 1～9 輪（第 1 次）：178、739、538、449、452、778、645、743、903 ms；三次中**最慢 0.93 秒**（較早的量測最慢 0.76 秒） |
+| 400 人、9 輪的積分榜重算 | < 200 ms | **1.3～1.4 ms** |
 | （參考）瑞士制 500 人＝人數上限，每輪配對 | — | 第 1～9 輪：319、1897、2147、84、1295、1447、1040、523、1182 ms（最慢 2.1 秒） |
 
 400 人的每一輪都驗證：每位在籍選手恰好出現一次、無重複輪空、無重複對戰。
@@ -268,7 +267,7 @@ dotnet run --project tools/TourneyDesk.SampleGen -c Release -- demo 示範資料
 
 ## 已知限制
 
-- 第二階段在分數群組間有大量緊邊時需要多次求解，400 人最慢約 0.76 秒；人數再增加時耗時成長很快，上限 500 人實測最慢約 2.1 秒，仍在需求的 3 秒內但餘裕較小。
+- 第二階段在分數群組間有大量緊邊時需要多次求解，400 人最慢約 0.76～0.93 秒；人數再增加時耗時成長很快，上限 500 人實測最慢約 2.1 秒，仍在需求的 3 秒內但餘裕較小。
 - 復原歷史只存在記憶體（上限 100 層），關閉賽事後無法復原先前的操作；異動紀錄永久保存可供追查。
 - 過期判定需要對較後的每一輪重新計算引擎建議；400 人、輪次很多時會在背景執行數秒（不會阻擋操作）。
 - 淘汰賽雙方都退賽時由較高種子晉級（需求未定義，採最簡單的規則）。
