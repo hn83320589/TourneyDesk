@@ -15,6 +15,16 @@
     <ProjectReference Include="..\..\src\TourneyDesk.Data\TourneyDesk.Data.csproj" />
   </ItemGroup>
 
+  <!-- 共用 Core 測試的產生器與輔助工具（隨機操作、種子化性質測試、範例賽事） -->
+  <ItemGroup>
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\Commands.cs" Link="Shared\Commands.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\ManualTimeProvider.cs" Link="Shared\ManualTimeProvider.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\Property.cs" Link="Shared\Property.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\RandomOperations.cs" Link="Shared\RandomOperations.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\SwissHistoryGenerator.cs" Link="Shared\SwissHistoryGenerator.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\SwissFlow.cs" Link="Shared\SwissFlow.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
