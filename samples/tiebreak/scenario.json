@@ -1,0 +1,24 @@
+{
+  // 同分判定專用範例：9 人 4 輪，I 自第 3 輪起退賽。手算過程見 README.md
+  "name": "同分判定範例",
+  "format": "Swiss",
+  "swissRounds": 4,
+  "byePoints": 2,
+  "players": [
+    { "regNo": 1, "name": "A", "rating": 1900 },
+    { "regNo": 2, "name": "B", "rating": 1850 },
+    { "regNo": 3, "name": "C", "rating": 1800 },
+    { "regNo": 4, "name": "D", "rating": 1750 },
+    { "regNo": 5, "name": "E", "rating": 1700 },
+    { "regNo": 6, "name": "F", "rating": 1650 },
+    { "regNo": 7, "name": "G", "rating": 1600 },
+    { "regNo": 8, "name": "H", "rating": 1550 },
+    { "regNo": 9, "name": "I", "rating": 1500, "withdrawRound": 3 }
+  ],
+  "rounds": [
+    { "games": [ "1 2 1-0", "3 4 1-0", "5 6 =", "7 8 1-0" ], "bye": 9 },
+    { "games": [ "1 9 1-0", "2 3 =", "4 5 1-0", "6 7 1-0" ], "bye": 8 },
+    { "games": [ "1 6 1-0", "2 8 1-0", "3 5 =", "4 7 1-0" ] },
+    { "games": [ "7 1 1-0", "2 5 +/-", "3 8 =", "4 6 =" ] }
+  ]
+}
