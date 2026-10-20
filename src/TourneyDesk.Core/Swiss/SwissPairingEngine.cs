@@ -118,9 +118,27 @@ public static class SwissPairingEngine
         CancellationToken ct)
     {
         var m = remaining.Count; // remaining 依排名由小到大
+
+        // 主要成本只需涵蓋「剩餘緊邊之間」的實際範圍：所有完美匹配的邊數相同，平移常數不影響最佳解。
+        // 緊邊之間的成本差通常很小，省下的位元可多放幾層，減少分段次數。
+        var tightPairs = new List<(int Pa, int Pb, long Cost)>();
+        long maxCost = long.MinValue, minCost = long.MaxValue;
+        for (var pa = 0; pa < m; pa++)
+        {
+            for (var pb = pa + 1; pb < m; pb++)
+            {
+                if (!tight[remaining[pa], remaining[pb]])
+                    continue;
+                var cost = costs.Pair(remaining[pa], remaining[pb]);
+                tightPairs.Add((pa, pb, cost));
+                maxCost = Math.Max(maxCost, cost);
+                minCost = Math.Min(minCost, cost);
+            }
+        }
+
         Int128 bas = m;
         var limit = Int128.One << WeightBitBudget;
-        var primarySpan = (Int128)costs.Max + 1;
+        var primarySpan = (Int128)(maxCost - minCost) + 1;
         var layers = 0;
         Int128 scale = 1;
         while (layers < m && (maxLayers is null || layers < maxLayers) && 2 * primarySpan * scale * bas < limit)
@@ -137,19 +155,12 @@ public static class SwissPairingEngine
         for (var t = layers - 2; t >= 0; t--)
             levelWeight[t] = levelWeight[t + 1] * bas;
 
-        var edges = new List<WeightedEdge>();
-        for (var pa = 0; pa < m; pa++)
+        var edges = new List<WeightedEdge>(tightPairs.Count);
+        foreach (var (pa, pb, cost) in tightPairs)
         {
-            for (var pb = pa + 1; pb < m; pb++)
-            {
-                var a = remaining[pa];
-                var b = remaining[pb];
-                if (!tight[a, b])
-                    continue;
-                var lex = pa < layers ? levelWeight[pa] * pb : 0;
-                var w = ((Int128)(costs.Max - costs.Pair(a, b)) * scale) + lex;
-                edges.Add(new WeightedEdge(pa, pb, 2 * w));
-            }
+            var lex = pa < layers ? levelWeight[pa] * pb : 0;
+            var w = ((Int128)(maxCost - cost) * scale) + lex;
+            edges.Add(new WeightedEdge(pa, pb, 2 * w));
         }
 
         var mate = MaxWeightMatching.Solve(m, edges, maxCardinality: true, ct).Mate;
