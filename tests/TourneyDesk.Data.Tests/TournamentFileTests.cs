@@ -13,6 +13,9 @@ public class TournamentFileTests : IDisposable
 {
     private readonly TempDirectory _dir = new();
 
+    /// <summary>注入的時鐘（2026-10-01 01:00 UTC）；ManualTimeProvider 的本地時區為 UTC。</summary>
+    private static readonly ManualTimeProvider Time = new();
+
     public void Dispose() => _dir.Dispose();
 
     private string NewPath() => _dir.File($"{Guid.NewGuid():N}.tourney");
@@ -43,7 +46,7 @@ public class TournamentFileTests : IDisposable
         var state = SampleSwiss();
         TournamentFile.Create(path, state).Dispose();
 
-        var (file, loaded) = TournamentFile.Open(path);
+        var (file, loaded) = TournamentFile.Open(path, Time);
         using (file)
             Assert.Equal(StateHasher.Compute(state), StateHasher.Compute(loaded));
     }
@@ -81,7 +84,7 @@ public class TournamentFileTests : IDisposable
 
                 if (step % 8 == 7)
                 {
-                    var (reopened, loaded) = TournamentFile.Open(path);
+                    var (reopened, loaded) = TournamentFile.Open(path, Time);
                     reopened.Dispose();
                     Assert.Equal(StateHasher.Compute(session.State), StateHasher.Compute(loaded));
                 }
@@ -119,7 +122,7 @@ public class TournamentFileTests : IDisposable
         RawSql(path, "PRAGMA user_version = 99");
         var hash = FileHash(path);
 
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path, Time));
 
         Assert.Contains("較新版本", ex.Message);
         Assert.Equal(hash, FileHash(path));
@@ -132,7 +135,7 @@ public class TournamentFileTests : IDisposable
         File.WriteAllText(path, "姓名,積分\n王小明,1500\n");
         var hash = FileHash(path);
 
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path, Time));
 
         Assert.Contains("不是 TourneyDesk 賽事檔", ex.Message);
         Assert.Equal(hash, FileHash(path));
@@ -145,7 +148,7 @@ public class TournamentFileTests : IDisposable
         RawSql(path, "CREATE TABLE t (x INTEGER)");
         var hash = FileHash(path);
 
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path, Time));
 
         Assert.Equal("這是 SQLite 檔案，但不是 TourneyDesk 賽事檔。", ex.Message);
         Assert.Equal(hash, FileHash(path));
@@ -163,7 +166,7 @@ public class TournamentFileTests : IDisposable
         File.WriteAllBytes(path, bytes);
         var hash = FileHash(path);
 
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path, Time));
 
         Assert.Contains("損毀", ex.Message);
         Assert.Equal(hash, FileHash(path));
@@ -177,7 +180,7 @@ public class TournamentFileTests : IDisposable
         var bytes = File.ReadAllBytes(path);
         File.WriteAllBytes(path, bytes[..(bytes.Length / 3)]);
 
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(path, Time));
 
         Assert.Contains("損毀", ex.Message);
     }
@@ -185,7 +188,7 @@ public class TournamentFileTests : IDisposable
     [Fact]
     public void Missing_file_has_readable_message()
     {
-        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(NewPath()));
+        var ex = Assert.Throws<StorageException>(() => TournamentFile.Open(NewPath(), Time));
 
         Assert.StartsWith("找不到檔案", ex.Message);
     }
@@ -199,7 +202,7 @@ public class TournamentFileTests : IDisposable
         RawSql(path, "DROP TABLE file_info; PRAGMA user_version = 1;");
         var original = File.ReadAllBytes(path);
 
-        var (file, state) = TournamentFile.Open(path);
+        var (file, state) = TournamentFile.Open(path, Time);
         file.Dispose();
 
         var backup = path + ".v1.bak";
@@ -207,6 +210,20 @@ public class TournamentFileTests : IDisposable
         Assert.Equal(original, File.ReadAllBytes(backup));
         Assert.Equal(FileCheckKind.Ok, TournamentFileInspector.Inspect(path).Kind);
         Assert.Equal(StateHasher.Compute(SampleSwiss()), StateHasher.Compute(state));
+    }
+
+    [Fact]
+    public void Second_upgrade_backup_name_uses_injected_clock()
+    {
+        var path = NewPath();
+        TournamentFile.Create(path, SampleSwiss()).Dispose();
+        RawSql(path, "DROP TABLE file_info; PRAGMA user_version = 1;");
+        File.WriteAllText(path + ".v1.bak", "先前的備份"); // 名稱已被占用
+
+        TournamentFile.Open(path, Time).File.Dispose();
+
+        Assert.Equal("先前的備份", File.ReadAllText(path + ".v1.bak"));
+        Assert.True(File.Exists(path + ".v1.20261001010000.bak"));
     }
 
     [Fact]
@@ -222,7 +239,7 @@ public class TournamentFileTests : IDisposable
 
         Assert.Throws<StorageException>(() => file.Commit(state, broken, [new AuditEntry(DateTimeOffset.UnixEpoch, "x", "y", null, null)]));
 
-        var (reopened, loaded) = TournamentFile.Open(path);
+        var (reopened, loaded) = TournamentFile.Open(path, Time);
         using (reopened)
         {
             Assert.Equal(StateHasher.Compute(state), StateHasher.Compute(loaded));
@@ -243,7 +260,7 @@ public class TournamentFileTests : IDisposable
         session.Execute(new SetResult(1, 2, GameResult.Draw));
 
         Assert.True(File.Exists(path + ".r1.bak"));
-        var (backup, state) = TournamentFile.Open(path + ".r1.bak");
+        var (backup, state) = TournamentFile.Open(path + ".r1.bak", Time);
         backup.Dispose();
         Assert.True(state.GetRound(1).IsCompleted);
     }

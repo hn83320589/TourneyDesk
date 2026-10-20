@@ -16,7 +16,7 @@ internal sealed class FileGateway(TimeProvider time) : ITournamentGateway
         var handle = Manager(path).Acquire(confirmedStaleTakeover, forceConfirmation);
         try
         {
-            var (file, state) = TournamentFile.Open(path);
+            var (file, state) = TournamentFile.Open(path, time);
             return Wrap(path, file, state, handle);
         }
         catch

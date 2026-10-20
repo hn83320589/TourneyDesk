@@ -60,16 +60,16 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
 
     /// <summary>
     /// 開啟賽事檔：先以唯讀方式驗證（不符時丟出 <see cref="StorageException"/>，且不修改檔案），
-    /// 舊版 schema 先備份為 <c>{檔名}.v{舊版}.bak</c> 再升級。
+    /// 舊版 schema 先備份為 <c>{檔名}.v{舊版}.bak</c> 再升級（該名稱已存在時加上 <paramref name="time"/> 的時間戳）。
     /// </summary>
-    public static (TournamentFile File, TournamentState State) Open(string path)
+    public static (TournamentFile File, TournamentState State) Open(string path, TimeProvider time)
     {
         var check = TournamentFileInspector.Inspect(path);
         if (check.Kind is not (FileCheckKind.Ok or FileCheckKind.NeedsUpgrade))
             throw new StorageException(check.Message);
 
         if (check.Kind == FileCheckKind.NeedsUpgrade)
-            Upgrade(path, check.Version);
+            Upgrade(path, check.Version, time);
 
         try
         {
@@ -161,11 +161,11 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
         return connection;
     }
 
-    private static void Upgrade(string path, int fromVersion)
+    private static void Upgrade(string path, int fromVersion, TimeProvider time)
     {
         var backup = $"{path}.v{fromVersion}.bak";
         if (File.Exists(backup))
-            backup = $"{path}.v{fromVersion}.{DateTime.Now:yyyyMMddHHmmss}.bak";
+            backup = $"{path}.v{fromVersion}.{time.GetLocalNow():yyyyMMddHHmmss}.bak";
         try
         {
             File.Copy(path, backup);
