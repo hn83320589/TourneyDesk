@@ -1,0 +1,31 @@
+{
+  // 瑞士制 12 人 5 輪（含遲到加入、退賽、輪空、棄權）。每輪配對由引擎產生，結果依序登錄。
+  // M 自第 3 輪起遲到加入；K 自第 4 輪起退賽；L 自第 5 輪起退賽。手算見 README.md
+  "name": "瑞士制 12 人 5 輪範例",
+  "format": "Swiss",
+  "swissRounds": 5,
+  "byePoints": 2,
+  "players": [
+    { "regNo": 1, "name": "A", "rating": 2000 },
+    { "regNo": 2, "name": "B", "rating": 1950 },
+    { "regNo": 3, "name": "C", "rating": 1900 },
+    { "regNo": 4, "name": "D", "rating": 1850 },
+    { "regNo": 5, "name": "E", "rating": 1800 },
+    { "regNo": 6, "name": "F", "rating": 1750 },
+    { "regNo": 7, "name": "G", "rating": 1700 },
+    { "regNo": 8, "name": "H", "rating": 1650 },
+    { "regNo": 9, "name": "I", "rating": 1600 },
+    { "regNo": 10, "name": "J", "rating": 1550 },
+    { "regNo": 11, "name": "K", "rating": 1500, "withdrawRound": 4 },
+    { "regNo": 12, "name": "L", "rating": 1450, "withdrawRound": 5 },
+    { "regNo": 13, "name": "M", "rating": 1700, "joinRound": 3 }
+  ],
+  // 依桌號順序的結果（先手的角度）
+  "results": [
+    [ "1-0", "1-0", "=", "1-0", "0-1", "1-0" ],
+    [ "0-1", "=", "1-0", "0-1", "-/+", "0-1" ],
+    [ "=", "0-1", "1-0", "0-1", "1-0", "1-0" ],
+    [ "0-1", "1-0", "=", "0-1", "1-0", "1-0" ],
+    [ "=", "0-1", "1-0", "1-0", "=" ]
+  ]
+}

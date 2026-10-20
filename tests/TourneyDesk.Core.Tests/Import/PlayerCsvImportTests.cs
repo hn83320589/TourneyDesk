@@ -135,6 +135,18 @@ public class PlayerCsvImportTests
         Assert.Equal("沒有可匯入的選手。", Empty().RuleViolation(new ImportPlayers([])));
     }
 
+    [Theory]
+    [InlineData("=1+1", "'=1+1")]
+    [InlineData("+886", "'+886")]
+    [InlineData("-5", "'-5")]
+    [InlineData("@SUM(A1)", "'@SUM(A1)")]
+    [InlineData("=HYPERLINK(\"x\",\"y\")", "\"'=HYPERLINK(\"\"x\"\",\"\"y\"\")\"")]
+    [InlineData("王小明", "王小明")]
+    public void Csv_writer_neutralizes_formula_injection(string value, string expected)
+    {
+        Assert.Equal(expected, Csv.FormatRow([value]));
+    }
+
     [Fact]
     public void Csv_writer_escapes_and_prefixes_bom()
     {

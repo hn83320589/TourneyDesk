@@ -88,10 +88,16 @@ public static class Csv
         }
     }
 
-    /// <summary>輸出一列 CSV（必要時加引號）。</summary>
+    /// <summary>
+    /// 輸出一列 CSV（必要時加引號）。以 = + - @ Tab CR 開頭的欄位前加單引號，
+    /// 避免試算表把（可能來自匯入資料的）姓名當成公式執行（CSV／公式注入）。
+    /// </summary>
     public static string FormatRow(IEnumerable<string> values) =>
-        string.Join(',', values.Select(v =>
-            v.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? $"\"{v.Replace("\"", "\"\"", StringComparison.Ordinal)}\"" : v));
+        string.Join(',', values.Select(raw =>
+        {
+            var v = raw.Length > 0 && "=+-@\t\r".Contains(raw[0], StringComparison.Ordinal) ? "'" + raw : raw;
+            return v.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? $"\"{v.Replace("\"", "\"\"", StringComparison.Ordinal)}\"" : v;
+        }));
 
     /// <summary>UTF-8 with BOM 的完整 CSV 內容（Excel 可直接正確開啟中文）。</summary>
     public static byte[] ToUtf8WithBom(IEnumerable<IEnumerable<string>> rows)
