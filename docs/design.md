@@ -281,3 +281,23 @@ while remaining 非空:
 | Q6 | GitHub repo：是否已有遠端？發佈檔要 framework-dependent 或 self-contained？ | 先本地 git；發佈 self-contained 單一資料夾（使用者免裝 .NET） |
 | Q7 | 效能測試在 CI 是否也要強制門檻？（雲端 runner 較慢） | CI 執行但門檻×2；README 數據以本機 i7-13700/32GB 實測 |
 | Q8 | 「禁止 double/float 表示分數」是否要以工具強制？ | 加一個測試以反射掃描 Core 公開型別中名稱含 Score/Points 的成員不得為浮點數 |
+
+---
+
+## 15. 實作紀錄（與上方設計的差異與補充）
+
+| 項目 | 實作 | 原因 |
+|---|---|---|
+| ⑤ 的求解 | 先只以 ①～④ 求最佳解並取「緊邊」（含 blossom 對偶的完整 reduced cost = 0），第二階段的分段求解只在緊邊子圖上進行 | 所有最佳方案只用緊邊（互補鬆弛），可大幅縮小後續每段的圖 |
+| 復原層數 | 預設 100 層 | 需求 ≥ 50；快照成本極低 |
+| 背景工作 | 配對期間 Session 拒絕所有變更；「過期判定」則以不可變快照在背景計算、不鎖 Session，狀態改變時自動取消重算 | 過期判定只讀，不需要阻擋使用者 |
+| 淘汰賽模型 | 每場以來源（種子／勝者／敗者）描述，正規化步驟自動處理輪空與退賽 walkover；雙方都退賽時較高種子晉級 | 需求未定義雙方退賽，採最簡單的規則 |
+| 連鎖清除與重新配對的確認 | 先產生影響清單（ClearImpact），命令執行時比對使用者確認的指紋 | 確認後若狀態改變，拒絕執行而不是清除錯誤的範圍 |
+| schema | v1 為初始版本，v2 加入 `file_info` 表 | 讓「舊版先備份再升級」從第一天起就有真實的遷移可測 |
+| 選手寫入 | `INSERT … ON CONFLICT(id) DO UPDATE` | `INSERT OR REPLACE` 遇到註冊編號 UNIQUE 衝突會默默刪掉另一列 |
+| CSV 匯出 | 以 `= + - @ Tab CR` 開頭的欄位前加單引號 | 防範試算表公式注入（姓名可能來自外部匯入） |
+| 效能測試 | 只在 Release 組態執行（`ReleaseOnlyFact`），CI 以 `TOURNEYDESK_PERF_FACTOR=2` 放寬 | Debug 未最佳化、耗時約 5 倍，不具代表性 |
+| 啟動參數 | `TourneyDesk.App.exe <賽事檔>` 直接開啟 | 雙擊 .tourney 檔、示範與截圖 |
+| UI 元件命名 | 頁面為 `*View`（PlayersView…） | 避免與 Core 版面計算的 `BracketPage`、`CrosstablePage` 同名 |
+
+所有里程碑 M0～M11 已完成；實測數據與已知限制見 README。
