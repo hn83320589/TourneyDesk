@@ -62,7 +62,7 @@ public class UndoPropertyTests
 
         string[] required =
         [
-            nameof(AddPlayer), nameof(EditPlayer), nameof(DeletePlayer), nameof(GenerateSwissRound), nameof(SwapInDraft),
+            nameof(AddPlayer), nameof(EditPlayer), nameof(DeletePlayer), nameof(ImportPlayers), nameof(GenerateSwissRound), nameof(SwapInDraft),
             nameof(PublishRound), nameof(SetResult), nameof(WithdrawPlayer), nameof(LateJoinPlayer), nameof(RepairFromRound),
             nameof(DiscardDraft), nameof(StartRoundRobin), nameof(StartKnockout), nameof(RecordKnockoutWinner),
             nameof(CorrectKnockoutWinner), nameof(WithdrawFromKnockout),

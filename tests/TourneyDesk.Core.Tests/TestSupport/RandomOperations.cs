@@ -15,6 +15,8 @@ internal static class RandomOperations
             () => new AddPlayer($"N{rng.Next(1000)}", rng.Next(0, 3001)),
             () => AnyPlayer(s, rng) is { } p ? new EditPlayer(p.Id, p.Name + "'", rng.Next(0, 3001)) : null,
             () => AnyPlayer(s, rng) is { } p ? new DeletePlayer(p.Id) : null,
+            () => new ImportPlayers([.. Enumerable.Range(0, rng.Next(1, 4))
+                .Select(i => new TourneyDesk.Core.Import.ImportedPlayer(i + 2, null, $"匯{rng.Next(1000)}", rng.Next(0, 3001)))]),
         };
 
         switch (s.Settings.Format)
