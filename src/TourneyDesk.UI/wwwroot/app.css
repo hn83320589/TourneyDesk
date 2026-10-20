@@ -65,8 +65,13 @@ input[type=number] { width: 90px; }
     background: var(--surface);
     border-bottom: 1px solid var(--border);
 }
+.topbar > * { flex-shrink: 0; white-space: nowrap; }
 .topbar .title { font-weight: 700; font-size: 16px; margin-right: 12px; }
-.topbar .file { color: var(--muted); font-size: 12px; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar .file { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+button { white-space: nowrap; }
+table.grid.pairings { table-layout: fixed; }
+table.grid col.board { width: 64px; }
+table.grid col.score { width: 72px; }
 
 .tabs {
     display: flex; gap: 2px;

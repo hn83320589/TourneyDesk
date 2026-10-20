@@ -1,5 +1,6 @@
 @inject Workspace Workspace
 @inject IFileDialogService Dialogs
+@inject StartupOptions Startup
 
 <div class="panel start">
     <h2>開始</h2>
@@ -24,6 +25,15 @@
     private bool _creating;
     private Core.Locking.LockDecision? _lock;
     private string? _pendingPath;
+
+    protected override void OnInitialized()
+    {
+        if (Startup.OpenPath is { } path)
+        {
+            Startup.OpenPath = null;
+            OpenPath(path);
+        }
+    }
 
     private void OpenAsync()
     {

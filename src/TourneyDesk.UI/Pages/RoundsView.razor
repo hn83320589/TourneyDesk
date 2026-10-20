@@ -50,32 +50,6 @@ else
 {
     var round = Selected;
     var isDraft = round.Status == RoundStatus.Draft;
-    <div class="panel screen-only">
-        @if (isDraft)
-        {
-            <p class="muted">草稿：依序點選兩位選手即可交換位置。確認無誤後發布。</p>
-        }
-        <table class="grid pairings">
-            <thead><tr><th class="num">桌號</th><th>先手</th><th>後手</th><th>結果</th></tr></thead>
-            <tbody>
-                @for (var i = 0; i < round.Games.Length; i++)
-                {
-                    var g = round.Games[i];
-                    <tr class="@(Violating(round, g) ? "violation" : "")">
-                        <td class="num">@(i + 1)</td>
-                        <td>@PlayerCell(round, g.White)</td>
-                        <td>@PlayerCell(round, g.Black)</td>
-                        <td>@(g.Result.HasResult() ? g.Result.DisplayName() : "")</td>
-                    </tr>
-                }
-                @if (round.Bye is { } bye)
-                {
-                    <tr><td class="num">輪空</td><td colspan="3">@PlayerCell(round, bye)</td></tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
     @if (isDraft && State.Settings.Format == TournamentFormat.Swiss)
     {
         var current = SwissRoundPlanner.Evaluate(State, round);
@@ -113,6 +87,38 @@ else
             </div>
         </div>
     }
+
+    <div class="panel screen-only">
+        @if (isDraft)
+        {
+            <p class="muted">草稿：依序點選兩位選手即可交換位置。確認無誤後發布。</p>
+        }
+        <table class="grid pairings">
+            <colgroup><col class="board" /><col /><col class="score" /><col /><col class="score" /><col /></colgroup>
+            <thead><tr><th class="num">桌號</th><th>先手</th><th class="num">賽前分</th><th>後手</th><th class="num">賽前分</th><th>結果</th></tr></thead>
+            <tbody>
+                @{
+                    var before = ScoreSheet.Build(State, round.Number);
+                }
+                @for (var i = 0; i < round.Games.Length; i++)
+                {
+                    var g = round.Games[i];
+                    <tr class="@(Violating(round, g) ? "violation" : "")">
+                        <td class="num">@(i + 1)</td>
+                        <td>@PlayerCell(round, g.White)</td>
+                        <td class="num">@Display.Score(before.Total(g.White))</td>
+                        <td>@PlayerCell(round, g.Black)</td>
+                        <td class="num">@Display.Score(before.Total(g.Black))</td>
+                        <td>@(g.Result.HasResult() ? g.Result.DisplayName() : "")</td>
+                    </tr>
+                }
+                @if (round.Bye is { } bye)
+                {
+                    <tr><td class="num">輪空</td><td colspan="5">@PlayerCell(round, bye)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
     <div class="print-only">
         <PairingSheet State="State" Round="round" />

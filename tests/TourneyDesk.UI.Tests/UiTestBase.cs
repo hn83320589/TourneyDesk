@@ -23,7 +23,10 @@ public abstract class UiTestBase : BunitContext
         Services.AddSingleton(Workspace);
         Services.AddSingleton<IFileDialogService>(Dialogs);
         Services.AddSingleton<IPrintService>(Printer);
+        Services.AddSingleton(Startup);
     }
+
+    internal StartupOptions Startup { get; } = new();
 
     /// <summary>以指定狀態「開啟」一個賽事。</summary>
     internal void OpenWith(TournamentState state, string path = @"C:\賽事\已存在.tourney")

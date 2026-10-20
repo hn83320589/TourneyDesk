@@ -131,6 +131,18 @@ public class ShellTests : UiTestBase
     }
 
     [Fact]
+    public void Startup_path_is_opened_once()
+    {
+        Startup.OpenPath = @"C:\賽事\雙擊.tourney";
+        Gateway.Files[Startup.OpenPath] = TournamentState.Create(TournamentSettings.Create("雙擊開啟", TournamentFormat.Swiss));
+
+        var cut = Render<Shell>();
+
+        Assert.Equal("雙擊開啟", cut.Find(".tournament-name").TextContent);
+        Assert.Null(Startup.OpenPath);
+    }
+
+    [Fact]
     public void Open_failure_is_shown_as_notice()
     {
         Dialogs.OpenPath = @"C:\賽事\不存在.tourney";

@@ -3,7 +3,7 @@ namespace TourneyDesk.App;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
 
@@ -18,7 +18,7 @@ internal static class Program
             return;
         }
 
-        Application.Run(new MainForm());
+        Application.Run(new MainForm(args.FirstOrDefault()));
     }
 
     private static void ShowFatal(Exception? ex)

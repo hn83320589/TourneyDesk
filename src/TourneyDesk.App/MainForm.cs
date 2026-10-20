@@ -9,7 +9,7 @@ internal sealed class MainForm : Form
 {
     private readonly ServiceProvider _services;
 
-    public MainForm()
+    public MainForm(string? startupPath = null)
     {
         Text = "賽事裁判台 TourneyDesk";
         Width = 1360;
@@ -24,6 +24,7 @@ internal sealed class MainForm : Form
         services.AddSingleton<AppFolders>();
         services.AddSingleton<ITournamentGateway, FileGateway>();
         services.AddSingleton<Workspace>();
+        services.AddSingleton(new StartupOptions { OpenPath = startupPath });
         services.AddSingleton<IFileDialogService>(sp => new WinFormsFileDialogs(this, sp.GetRequiredService<AppFolders>()));
         services.AddSingleton<IPrintService>(_ => new WebViewPrintService(webView));
         _services = services.BuildServiceProvider();
