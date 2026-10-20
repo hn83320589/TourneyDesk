@@ -6,7 +6,7 @@
 | 測試日期 | 2026-10-20 |
 | 測試環境 | Intel Core i7-13700（8P+8E）、32 GB RAM、Windows 11 Pro 10.0.26200、.NET SDK 9.0.315／Runtime 9.0.17、WebView2 Runtime（系統內建） |
 | 測試框架 | xUnit 2.9.3、bUnit 2.12.5（自寫性質測試產生器，固定種子） |
-| 結論 | **自動化測試 307／307 通過**；驗收標準 1～24 **全部符合**；第 25 項（CI）見[第 6 節](#6-ci驗收-25) |
+| 結論 | **自動化測試 307／307 通過；驗收標準 1～25 全部符合**（CI 綠燈，見[第 6 節](#6-ci驗收-25)） |
 
 ---
 
@@ -86,7 +86,7 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 | 22 | 400 人積分榜重算符合上限；400 列時 DOM 渲染列數遠少於 400 | 效能＋bUnit | `StandingsPerformanceTests`：**1.3 ms** < 200 ms；`PlayersViewTests.Four_hundred_players_are_virtualized`：模擬 520 px 可視區時只渲染 10～40 列（無可視區資訊時亦 ≤ 100 列） | ✅ |
 | 23 | 核心與 UI 邏輯有單元測試，≥ 180 個案例（含 ≥ 7 組性質測試），dotnet test 全數通過 | 執行測試 | **307 個案例**、全數通過；以隨機輸入、固定種子的性質測試 11 組（第 4 節） | ✅ |
 | 24 | README 含建置步驟、截圖、架構、瑞士制最佳化與同分判定演算法、效能數據、設計取捨與已知限制 | 檢視 README | `README.md` 各節齊備；截圖 6 張為實機畫面（`docs/screenshots/`） | ✅ |
-| 25 | GitHub Actions 在 Windows runner 建置並測試，CI 綠燈，README 有徽章，上傳 win-x64 發佈檔 | 檢視 Actions | `.github/workflows/ci.yml`、README 徽章已指向 `hn83320589/TourneyDesk`。執行結果見第 6 節 | 見第 6 節 |
+| 25 | GitHub Actions 在 Windows runner 建置並測試，CI 綠燈，README 有徽章，上傳 win-x64 發佈檔 | 檢視 Actions | `.github/workflows/ci.yml`；README 徽章指向 `hn83320589/TourneyDesk`；run #39376930237 成功並上傳 `TourneyDesk-win-x64` | ✅ |
 
 ---
 
@@ -156,9 +156,17 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 
 - 設定：`.github/workflows/ci.yml` —— `windows-latest`、`actions/setup-dotnet@v4`（9.0.x）、Release 建置與全部測試（含效能測試，門檻 ×2）、上傳測試結果與 `TourneyDesk-win-x64`（self-contained）發佈檔。
 - README 徽章：`https://github.com/hn83320589/TourneyDesk/actions/workflows/ci.yml/badge.svg`。
-- 執行結果：推送後填寫於下方。
 
-<!-- CI-RESULT -->
+**執行結果（2026-10-20）**：run [#39376930237](https://github.com/hn83320589/TourneyDesk/actions/runs/39376930237)，commit `9ebda95`，`windows-latest`，耗時約 2 分鐘，**結論 success（綠燈）**。
+
+| 步驟 | 結果 |
+|---|---|
+| Checkout、setup-dotnet 9.0.x、Restore | ✅ |
+| Build（Release） | ✅ |
+| Test（Release，含效能測試） | ✅ |
+| Upload test results | ✅（artifact `test-results`） |
+| Publish win-x64（self-contained） | ✅ |
+| Upload win-x64 artifact | ✅（artifact `TourneyDesk-win-x64`，壓縮後 48.2 MB） |
 
 ---
 
