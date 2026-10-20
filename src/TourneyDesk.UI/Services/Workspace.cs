@@ -154,6 +154,7 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
             var opened = open();
             Close();
             _opened = opened;
+            _proposalCache = new SwissProposalCache();
             opened.OnWarning = ShowError;
             Session = new TournamentSession(opened.State, opened.Store, time);
             Session.StateChanged += (_, _) => OnStateChanged();
@@ -213,7 +214,7 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
         Raise();
         try
         {
-            var stale = await Task.Run(() => SwissStaleness.FindStaleRounds(snapshot, 2, null, cts.Token), cts.Token)
+            var stale = await Task.Run(() => SwissStaleness.FindStaleRounds(snapshot, 2, null, cts.Token, _proposalCache), cts.Token)
                 .ConfigureAwait(false);
             lock (_staleGate)
             {
@@ -243,6 +244,9 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
     }
 
     private readonly object _staleGate = new();
+
+    /// <summary>過期判定的引擎建議快取（依輸入指紋）；開啟另一個賽事時重建。</summary>
+    private SwissProposalCache _proposalCache = new();
 
     private void SetNotice(Notice? notice)
     {

@@ -54,6 +54,27 @@ public sealed class SwissRoundInput
 
     public bool HaveMet(int idA, int idB) => _metPairs.Contains(Key(idA, idB));
 
+    /// <summary>
+    /// 輸入指紋：涵蓋引擎用到的全部資訊（依排名的選手及其分數、積分、輪空紀錄、先後手狀態，
+    /// 以及參賽者之間的交手紀錄）。引擎結果完全由輸入決定，因此可作為快取鍵。
+    /// </summary>
+    public string Fingerprint => _fingerprint ??= ComputeFingerprint();
+
+    private string? _fingerprint;
+
+    private string ComputeFingerprint()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var p in Ranked)
+            sb.Append(System.Globalization.CultureInfo.InvariantCulture,
+                $"{p.Id},{p.RegNo},{p.Rating},{p.Score},{(p.HadBye ? 1 : 0)},{p.WhiteCount},{(int?)p.LastColor ?? -1};");
+        sb.Append('|');
+        var ids = Ranked.Select(p => p.Id).ToHashSet();
+        foreach (var (a, b) in _metPairs.Where(m => ids.Contains(m.Item1) && ids.Contains(m.Item2)).Order())
+            sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"{a}-{b};");
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString())));
+    }
+
     public SwissCandidate Get(int id) => Ranked[RankOf[id] - 1];
 
     private static (int, int) Key(int a, int b) => a < b ? (a, b) : (b, a);
