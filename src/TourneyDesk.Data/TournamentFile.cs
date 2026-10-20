@@ -23,6 +23,9 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
 
     public string Path { get; }
 
+    /// <summary>開檔時是否回復了上次中斷（當機、斷電）留下的未完成寫入。</summary>
+    public bool RecoveredInterruptedWrite { get; private init; }
+
     /// <summary>非致命的警告（例如自動備份失敗）；主要寫入已成功。</summary>
     public event EventHandler<string>? Warning;
 
@@ -61,10 +64,20 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
     /// <summary>
     /// 開啟賽事檔：先以唯讀方式驗證（不符時丟出 <see cref="StorageException"/>，且不修改檔案），
     /// 舊版 schema 先備份為 <c>{檔名}.v{舊版}.bak</c> 再升級（該名稱已存在時加上 <paramref name="time"/> 的時間戳）。
+    /// 若有當機留下的熱日誌，先以讀寫連線讓 SQLite 回滾未完成的交易，再重新驗證。
+    /// 呼叫端必須已取得開檔鎖定（回復會寫入檔案）。
     /// </summary>
     public static (TournamentFile File, TournamentState State) Open(string path, TimeProvider time)
     {
         var check = TournamentFileInspector.Inspect(path);
+        var recovered = false;
+        if (check.Kind == FileCheckKind.NeedsRecovery)
+        {
+            RecoverInterruptedWrite(path);
+            recovered = true;
+            check = TournamentFileInspector.Inspect(path);
+        }
+
         if (check.Kind is not (FileCheckKind.Ok or FileCheckKind.NeedsUpgrade))
             throw new StorageException(check.Message);
 
@@ -76,7 +89,7 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
             var connection = Connect(path, SqliteOpenMode.ReadWrite);
             try
             {
-                return (new TournamentFile(path, connection), StateReader.Read(connection));
+                return (new TournamentFile(path, connection) { RecoveredInterruptedWrite = recovered }, StateReader.Read(connection));
             }
             catch
             {
@@ -159,6 +172,20 @@ public sealed class TournamentFile : ITournamentStore, IDisposable
         }
 
         return connection;
+    }
+
+    /// <summary>以讀寫連線取得共享鎖時，SQLite 會自動以熱日誌回滾主檔並刪除日誌。</summary>
+    private static void RecoverInterruptedWrite(string path)
+    {
+        try
+        {
+            using var connection = Connect(path, SqliteOpenMode.ReadWrite);
+            StateWriter.Exec(connection, null, "SELECT count(*) FROM sqlite_master");
+        }
+        catch (SqliteException ex)
+        {
+            throw new StorageException($"無法回復上次中斷的寫入：{SqliteMessages.Describe(ex)}", ex);
+        }
     }
 
     private static void Upgrade(string path, int fromVersion, TimeProvider time)

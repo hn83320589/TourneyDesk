@@ -157,7 +157,9 @@ public sealed class Workspace(ITournamentGateway gateway, TimeProvider time) : I
             opened.OnWarning = ShowError;
             Session = new TournamentSession(opened.State, opened.Store, time);
             Session.StateChanged += (_, _) => OnStateChanged();
-            SetNotice(new Notice(NoticeKind.Success, message));
+            SetNotice(opened.OpenNotice is { } extra
+                ? new Notice(NoticeKind.Info, $"{message}。{extra}。")
+                : new Notice(NoticeKind.Success, message));
             OnStateChanged();
             return true;
         }

@@ -29,6 +29,9 @@ public sealed class OpenedTournament(
 
     public ITournamentStore Store { get; } = store;
 
+    /// <summary>開檔時需要告知使用者的事項（例如已自動回復當機留下的未完成寫入）。</summary>
+    public string? OpenNotice { get; init; }
+
     /// <summary>非致命警告（例如自動備份失敗）的接收者，由 <see cref="Workspace"/> 設定。</summary>
     public Action<string>? OnWarning { get; set; }
 

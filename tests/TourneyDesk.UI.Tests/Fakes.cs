@@ -29,6 +29,8 @@ internal sealed class FakeGateway : ITournamentGateway
 
     public MemoryStore Store { get; } = new();
 
+    public string? OpenNotice { get; set; }
+
     public LockDecision CheckLock(string path) => Lock;
 
     public OpenedTournament Open(string path, bool confirmedStaleTakeover, string? forceConfirmation)
@@ -36,7 +38,7 @@ internal sealed class FakeGateway : ITournamentGateway
         Opens.Add((path, confirmedStaleTakeover, forceConfirmation));
         if (!Files.TryGetValue(path, out var state))
             throw new StorageException($"找不到檔案：{path}");
-        return new OpenedTournament(path, state, Store, () => Store.Audit, new Noop());
+        return new OpenedTournament(path, state, Store, () => Store.Audit, new Noop()) { OpenNotice = OpenNotice };
     }
 
     public OpenedTournament Create(string path, TournamentState initial)

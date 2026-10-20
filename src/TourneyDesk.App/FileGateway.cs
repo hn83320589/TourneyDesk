@@ -44,7 +44,10 @@ internal sealed class FileGateway(TimeProvider time) : ITournamentGateway
 
     private static OpenedTournament Wrap(string path, TournamentFile file, TournamentState state, ILockHandle handle)
     {
-        var opened = new OpenedTournament(path, state, file, file.ReadAudit, new Resources(file, handle));
+        var opened = new OpenedTournament(path, state, file, file.ReadAudit, new Resources(file, handle))
+        {
+            OpenNotice = file.RecoveredInterruptedWrite ? "已自動回復上次中斷（當機或斷電）時未完成的寫入，最後一個動作可能需要重做" : null,
+        };
         file.Warning += (_, message) => opened.RaiseWarning(message);
         return opened;
     }

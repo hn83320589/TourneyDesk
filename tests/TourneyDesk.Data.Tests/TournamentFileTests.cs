@@ -212,6 +212,47 @@ public class TournamentFileTests : IDisposable
         Assert.Equal(StateHasher.Compute(SampleSwiss()), StateHasher.Compute(state));
     }
 
+    /// <summary>
+    /// 當機（寫入交易途中被中止）會留下「熱日誌」（-journal）。唯讀連線無法回復它，
+    /// 開檔時必須以讀寫連線讓 SQLite 自動回復，並讀到交易前的資料。
+    /// 重現方式：極小的快取使交易途中的資料頁寫回主檔，此時複製主檔與日誌檔即等同當機當下的磁碟狀態。
+    /// </summary>
+    [Fact]
+    public void Hot_journal_left_by_a_crash_is_rolled_back_on_open()
+    {
+        var source = NewPath();
+        var initial = TournamentState.Create(TournamentSettings.Create("當機測試", TournamentFormat.Swiss));
+        for (var i = 0; i < 300; i++)
+            initial = initial.Then(new AddPlayer($"選手{i:D3}", 1000 + i));
+        TournamentFile.Create(source, initial).Dispose();
+        var beforeTransaction = FileHash(source);
+
+        var crashed = NewPath();
+        using (var c = new SqliteConnection($"Data Source={source};Pooling=False"))
+        {
+            c.Open();
+            using var cmd = c.CreateCommand();
+            // 每列擴大約 2 KB，資料頁遠超過快取 → 交易途中被寫回主檔
+            cmd.CommandText = "PRAGMA cache_size = 1; BEGIN IMMEDIATE; UPDATE players SET name = name || hex(randomblob(1000)), rating = 0;";
+            cmd.ExecuteNonQuery();
+            Assert.True(File.Exists(source + "-journal"), "測試前提：交易途中應有日誌檔");
+            Assert.NotEqual(beforeTransaction, FileHash(source)); // 測試前提：主檔已被改動 → 日誌是「熱」的
+            File.Copy(source, crashed);
+            File.Copy(source + "-journal", crashed + "-journal");
+            cmd.CommandText = "ROLLBACK";
+            cmd.ExecuteNonQuery();
+        }
+
+        var (file, state) = TournamentFile.Open(crashed, Time);
+        using (file)
+        {
+            Assert.True(file.RecoveredInterruptedWrite);
+            Assert.Equal(StateHasher.Compute(initial), StateHasher.Compute(state));
+        }
+
+        Assert.False(File.Exists(crashed + "-journal"));
+    }
+
     [Fact]
     public void Second_upgrade_backup_name_uses_injected_clock()
     {

@@ -10,6 +10,9 @@ public enum FileCheckKind
     NotTourneyFile,
     TooNew,
     Corrupt,
+
+    /// <summary>有當機留下的熱日誌；須在取得開檔鎖定後以讀寫連線回復。</summary>
+    NeedsRecovery,
 }
 
 public sealed record FileCheckResult(FileCheckKind Kind, int Version, string Message);
@@ -18,6 +21,9 @@ public sealed record FileCheckResult(FileCheckKind Kind, int Version, string Mes
 public static class TournamentFileInspector
 {
     private static readonly byte[] SqliteHeader = "SQLite format 3\0"u8.ToArray();
+
+    /// <summary>SQLITE_READONLY（基本碼）；唯讀連線遇到熱日誌時為延伸碼 SQLITE_READONLY_ROLLBACK（776）。</summary>
+    private const int SqliteReadOnly = 8;
 
     public static FileCheckResult Inspect(string path)
     {
@@ -56,6 +62,12 @@ public static class TournamentFileInspector
             return version < Schema.CurrentVersion
                 ? new FileCheckResult(FileCheckKind.NeedsUpgrade, version, $"賽事檔為舊版格式（版本 {version}），開啟時將先備份再升級。")
                 : new FileCheckResult(FileCheckKind.Ok, version, "");
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == SqliteReadOnly && File.Exists(path + "-journal"))
+        {
+            // 唯讀連線無法回復「熱日誌」（SQLITE_READONLY_ROLLBACK）：這是當機或斷電留下的未完成寫入，不是損毀
+            return new FileCheckResult(FileCheckKind.NeedsRecovery, 0,
+                "賽事檔有上次中斷（當機、斷電或強制結束）留下的未完成寫入，開啟時將自動回復到最後一次完整寫入的狀態。");
         }
         catch (SqliteException ex)
         {

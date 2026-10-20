@@ -143,6 +143,19 @@ public class ShellTests : UiTestBase
     }
 
     [Fact]
+    public void Recovery_after_crash_is_reported_when_opening()
+    {
+        Dialogs.OpenPath = @"C:\賽事\當機.tourney";
+        Gateway.Files[Dialogs.OpenPath] = TournamentState.Create(TournamentSettings.Create("當機後", TournamentFormat.Swiss));
+        Gateway.OpenNotice = "已自動回復上次中斷（當機或斷電）時未完成的寫入，最後一個動作可能需要重做";
+        var cut = Render<Shell>();
+
+        cut.Find("button.open-tournament").Click();
+
+        Assert.Contains("已自動回復上次中斷", cut.Find(".notice.info .message").TextContent);
+    }
+
+    [Fact]
     public void Open_failure_is_shown_as_notice()
     {
         Dialogs.OpenPath = @"C:\賽事\不存在.tourney";
