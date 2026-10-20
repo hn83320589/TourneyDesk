@@ -1,0 +1,76 @@
+@* 依 Core 的 BracketLayout 繪製籤表（只負責繪製，座標全部來自版面計算） *@
+<svg class="bracket" xmlns="http://www.w3.org/2000/svg" width="@Page.Width" height="@Page.Height" viewBox="0 0 @Page.Width @Page.Height">
+    @foreach (var c in Page.Connectors)
+    {
+        <polyline class="link" points="@Points(c)" />
+    }
+    @foreach (var box in Page.Boxes)
+    {
+        var match = Bracket.GetMatch(box.MatchId);
+        var (a, b) = Bracket.Participants(match);
+        var clickable = OnMatchClick.HasDelegate;
+        <g data-match="@box.MatchId">
+            @if (clickable)
+            {
+                <rect class="@BoxClass(box.MatchId, clickable)" x="@box.X" y="@box.Y" width="@box.Width" height="@box.Height" rx="4"
+                      @onclick="() => Click(box.MatchId)" />
+            }
+            else
+            {
+                <rect class="@BoxClass(box.MatchId, clickable)" x="@box.X" y="@box.Y" width="@box.Width" height="@box.Height" rx="4" />
+            }
+            <line class="divider" x1="@box.X" y1="@box.CenterY" x2="@box.Right" y2="@box.CenterY" />
+            <text class="@SlotClass(match, a)" x="@(box.X + 8)" y="@(box.SlotAY + 4)">@SlotText(match.A, a)</text>
+            <text class="@SlotClass(match, b)" x="@(box.X + 8)" y="@(box.SlotBY + 4)">@SlotText(match.B, b)</text>
+            <text class="label" x="@(box.Right - 4)" y="@(box.Y - 3)" text-anchor="end">@Label(match)</text>
+        </g>
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public Bracket Bracket { get; set; } = default!;
+
+    [Parameter, EditorRequired] public BracketPage Page { get; set; } = default!;
+
+    [Parameter, EditorRequired] public IReadOnlyDictionary<int, Player> Players { get; set; } = default!;
+
+    [Parameter] public int? SelectedMatch { get; set; }
+
+    [Parameter] public EventCallback<int> OnMatchClick { get; set; }
+
+    private static string Points(Connector c) =>
+        string.Join(" ", c.Points.Select(p => $"{Display.Int(p.X)},{Display.Int(p.Y)}"));
+
+    private string BoxClass(int id, bool clickable) =>
+        "box" + (clickable ? " clickable" : "") + (SelectedMatch == id ? " selected" : "");
+
+    private static string SlotClass(KnockoutMatch m, Participant p) =>
+        p.IsEmpty ? "empty"
+        : !p.IsKnown ? "pending"
+        : m.Outcome?.Winner == p.PlayerId ? "winner"
+        : "";
+
+    private string SlotText(KnockoutSource source, Participant p)
+    {
+        if (p.IsEmpty)
+            return "（輪空）";
+        if (!p.IsKnown)
+            return source.Kind == KnockoutSourceKind.Loser ? $"第 {source.Value} 場敗者" : $"第 {source.Value} 場勝者";
+        var player = Players[p.PlayerId!.Value];
+        var seed = Bracket.SeedOf(player.Id);
+        return $"[{seed}] {player.Name}" + (player.IsWithdrawn ? "（退賽）" : "");
+    }
+
+    private string Label(KnockoutMatch m)
+    {
+        var text = $"#{m.Id} {KnockoutRules.MatchLabel(Bracket, m)}";
+        return m.Outcome?.Kind switch
+        {
+            KnockoutOutcomeKind.Walkover => text + " · 不戰而勝",
+            KnockoutOutcomeKind.Bye => text + " · 輪空",
+            _ => text,
+        };
+    }
+
+    private Task Click(int id) => OnMatchClick.HasDelegate ? OnMatchClick.InvokeAsync(id) : Task.CompletedTask;
+}

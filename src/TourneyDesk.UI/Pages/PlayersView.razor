@@ -1,0 +1,188 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+
+<div class="page-header">
+    <h2>選手</h2>
+    <span class="muted">共 @Players.Count 人</span>
+    <span class="spacer"></span>
+    <input class="new-name" placeholder="姓名" @bind="_newName" aria-label="新選手姓名" />
+    <input class="new-rating" type="number" min="0" max="3000" @bind="_newRating" aria-label="新選手積分" />
+    <button class="primary add-player" @onclick="Add">@(LateJoinMode ? "遲到加入" : "新增")</button>
+    <button class="import-csv" disabled="@State.IsStarted" @onclick="PickCsv">匯入 CSV…</button>
+    <button @onclick="ExportCsv">匯出 CSV…</button>
+</div>
+
+@if (LateJoinMode)
+{
+    <p class="muted">賽事已開始：新增的選手將自第 @NextUnpublishedRound 輪起參賽（之前各輪得 0 分、不產生虛擬對手）。</p>
+}
+
+<div class="vlist" style="--cols: 70px 1fr 80px 150px 220px">
+    <div class="vlist-header"><span>編號</span><span>姓名</span><span class="num">積分</span><span>狀態</span><span></span></div>
+    <div class="vlist-body">
+        <Virtualize Items="Players" ItemSize="32" OverscanCount="5" Context="p">
+            <div class="vlist-row player-row @(p.IsWithdrawn ? "withdrawn" : "")" @key="p.Id">
+                <span class="num">@p.RegNo</span>
+                <span>@p.Name</span>
+                <span class="num">@p.Rating</span>
+                <span>@Display.Status(p)</span>
+                <span>
+                    <button class="link" @onclick="() => StartEdit(p)">編輯</button>
+                    @if (!State.IsScheduled(p.Id))
+                    {
+                        <button class="link delete-player" @onclick="() => Delete(p)">刪除</button>
+                    }
+                    else if (!p.IsWithdrawn)
+                    {
+                        <button class="link withdraw-player" @onclick="() => StartWithdraw(p)">退賽</button>
+                    }
+                </span>
+            </div>
+        </Virtualize>
+    </div>
+</div>
+
+@if (_editing is { } editing)
+{
+    <Modal Title="@($"編輯 #{editing.RegNo}")">
+        <ChildContent>
+            <div class="form-grid">
+                <label>姓名</label><input class="edit-name" @bind="_editName" />
+                <label>積分</label><input class="edit-rating" type="number" min="0" max="3000" @bind="_editRating" />
+            </div>
+        </ChildContent>
+        <Actions>
+            <button @onclick="() => _editing = null">取消</button>
+            <button class="primary save-edit" @onclick="SaveEdit">儲存</button>
+        </Actions>
+    </Modal>
+}
+
+@if (_withdrawing is { } w)
+{
+    <Modal Title="@($"#{w.RegNo} {w.Name} 退賽")">
+        <ChildContent>
+            <div class="form-grid">
+                <label>自第幾輪起生效</label>
+                <input class="withdraw-round" type="number" min="1" @bind="_withdrawRound" />
+            </div>
+            <p class="muted">生效輪起不再配對；已發布但尚未輸入結果的對局判退賽者棄權。分數維持退賽當下的累計值。</p>
+        </ChildContent>
+        <Actions>
+            <button @onclick="() => _withdrawing = null">取消</button>
+            <button class="danger confirm-withdraw" @onclick="ConfirmWithdraw">確認退賽</button>
+        </Actions>
+    </Modal>
+}
+
+@if (_preview is { } preview)
+{
+    <Modal Title="匯入預覽">
+        <ChildContent>
+            <p>編碼：@preview.EncodingName　可匯入 <strong>@preview.Players.Length</strong> 筆，錯誤 <strong>@preview.Errors.Length</strong> 列。</p>
+            @if (!preview.Errors.IsEmpty)
+            {
+                <ul class="impact import-errors">
+                    @foreach (var e in preview.Errors)
+                    {
+                        <li>第 @e.LineNumber 行：@e.Reason</li>
+                    }
+                </ul>
+                <p class="muted">錯誤列不會匯入，其餘列照常匯入。</p>
+            }
+        </ChildContent>
+        <Actions>
+            <button @onclick="() => _preview = null">取消</button>
+            <button class="primary confirm-import" disabled="@preview.Players.IsEmpty" @onclick="ConfirmImport">匯入 @preview.Players.Length 筆</button>
+        </Actions>
+    </Modal>
+}
+
+@code {
+    private string _newName = "";
+    private int _newRating = 1000;
+    private Player? _editing;
+    private string _editName = "";
+    private int _editRating;
+    private Player? _withdrawing;
+    private int _withdrawRound = 1;
+    private Core.Import.ImportPreview? _preview;
+
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private List<Player> Players => [.. State.Players.Values.OrderBy(p => p.RegNo)];
+
+    private bool LateJoinMode => State.IsStarted && State.Settings.Format == TournamentFormat.Swiss;
+
+    private int NextUnpublishedRound => State.Rounds.Count(r => r.IsPublished) + 1;
+
+    private void Add()
+    {
+        ITournamentCommand cmd = LateJoinMode
+            ? new LateJoinPlayer(_newName, _newRating, NextUnpublishedRound)
+            : new AddPlayer(_newName, _newRating);
+        if (Workspace.Execute(cmd).Succeeded)
+            _newName = "";
+    }
+
+    private void StartEdit(Player p)
+    {
+        _editing = p;
+        _editName = p.Name;
+        _editRating = p.Rating;
+    }
+
+    private void SaveEdit()
+    {
+        if (_editing is not null && Workspace.Execute(new EditPlayer(_editing.Id, _editName, _editRating)).Succeeded)
+            _editing = null;
+    }
+
+    private void Delete(Player p) => Workspace.Execute(new DeletePlayer(p.Id), $"已刪除 #{p.RegNo} {p.Name}");
+
+    private void StartWithdraw(Player p)
+    {
+        _withdrawing = p;
+        _withdrawRound = Math.Max(p.FirstRound, State.Rounds.Length == 0 ? 1 : State.Rounds.Length);
+    }
+
+    private void ConfirmWithdraw()
+    {
+        if (_withdrawing is null)
+            return;
+        ITournamentCommand cmd = State.Settings.Format == TournamentFormat.SingleElimination
+            ? new WithdrawFromKnockout(_withdrawing.Id)
+            : new WithdrawPlayer(_withdrawing.Id, _withdrawRound);
+        if (Workspace.Execute(cmd, $"#{_withdrawing.RegNo} {_withdrawing.Name} 已退賽").Succeeded)
+            _withdrawing = null;
+    }
+
+    private void PickCsv()
+    {
+        if (Dialogs.PickCsvToImport() is not { } path)
+            return;
+        try
+        {
+            _preview = Core.Import.PlayerCsvImport.Parse(File.ReadAllBytes(path), State);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Workspace.ShowError($"無法讀取 CSV：{ex.Message}");
+        }
+    }
+
+    /// <summary>測試用：直接以檔案內容建立預覽。</summary>
+    public void PreviewCsv(byte[] content) => _preview = Core.Import.PlayerCsvImport.Parse(content, State);
+
+    private void ConfirmImport()
+    {
+        if (_preview is null)
+            return;
+        var errors = _preview.Errors.Length;
+        if (Workspace.Execute(new ImportPlayers(_preview.Players),
+                $"已匯入 {_preview.Players.Length} 位選手" + (errors > 0 ? $"，{errors} 列有錯誤未匯入" : "")).Succeeded)
+            _preview = null;
+    }
+
+    private void ExportCsv() => FileExport.Save(Workspace, Dialogs, "選手名單.csv", "CSV 檔 (*.csv)|*.csv", () => ExportService.PlayersCsv(State));
+}

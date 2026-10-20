@@ -1,0 +1,113 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+@inject IPrintService Printer
+
+<div class="page-header">
+    <h2>淘汰籤表</h2>
+    <span class="spacer"></span>
+    @if (State.Bracket is null)
+    {
+        <button class="primary start-ko" @onclick="Start">產生籤表</button>
+    }
+    else
+    {
+        <button @onclick="Printer.PrintAsync">列印籤表</button>
+        <button @onclick="ExportHtmlAsync">匯出 HTML…</button>
+    }
+</div>
+
+@if (State.Bracket is { } bracket)
+{
+    <div class="panel screen-only" style="overflow: auto">
+        <p class="muted">點選一場比賽以登錄或更正勝者。</p>
+        <BracketSvg Bracket="bracket" Page="BracketLayout.Full(bracket)" Players="State.Players" SelectedMatch="_selected" OnMatchClick="Select" />
+    </div>
+
+    @if (_selected is { } id)
+    {
+        var match = bracket.GetMatch(id);
+        var (a, b) = bracket.Participants(match);
+        <div class="panel match-panel">
+            <h3>#@id @KnockoutRules.MatchLabel(bracket, match)</h3>
+            @if (!a.IsKnown || !b.IsKnown)
+            {
+                <p class="muted">@(match.Outcome?.Kind == KnockoutOutcomeKind.Bye ? "輪空晉級，不需登錄。" : "對戰雙方尚未確定。")</p>
+            }
+            else if (match.Outcome?.Kind == KnockoutOutcomeKind.Bye)
+            {
+                <p class="muted">輪空晉級，不需登錄。</p>
+            }
+            else
+            {
+                <p>
+                    勝者：
+                    @foreach (var p in new[] { a.PlayerId!.Value, b.PlayerId!.Value })
+                    {
+                        <button class="@(match.Outcome?.Winner == p ? "primary" : "") winner-choice" data-player="@p" @onclick="() => ChooseWinner(match, p)">
+                            @Display.Player(State, p)
+                        </button>
+                    }
+                </p>
+                @if (match.Outcome is { Kind: KnockoutOutcomeKind.Walkover })
+                {
+                    <p class="muted">對手退賽，不戰而勝。</p>
+                }
+            }
+        </div>
+    }
+
+    <div class="print-only">
+        <PrintableBracket State="State" />
+    </div>
+}
+else
+{
+    <div class="panel muted">新增選手後按「產生籤表」。種子依積分由高到低決定，輪空給最高的種子。</div>
+}
+
+@if (_correction is { } c)
+{
+    <ImpactConfirm Title="更正勝者"
+                   Message="@($"將 {KnockoutRules.MatchLabel(State.Bracket!, State.Bracket!.GetMatch(c.MatchId))} 的勝者改為 {Display.Player(State, c.Winner)}。")"
+                   Impact="c.Impact"
+                   OnCancel="() => _correction = null"
+                   OnConfirm="ConfirmCorrection" />
+}
+
+@code {
+    private int? _selected;
+    private (int MatchId, int Winner, ClearImpact Impact)? _correction;
+
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private void Start() => Workspace.Execute(new StartKnockout(), "已產生籤表");
+
+    private void Select(int id) => _selected = id;
+
+    private void ChooseWinner(KnockoutMatch match, int winner)
+    {
+        if (match.Outcome is null)
+        {
+            Workspace.Execute(new RecordKnockoutWinner(match.Id, winner));
+            return;
+        }
+
+        if (match.Outcome.Winner == winner)
+            return;
+        // 更正已完成場次：先列出連鎖清除的影響並要求確認
+        _correction = (match.Id, winner, KnockoutRules.CascadeImpact(State, match.Id));
+    }
+
+    private void ConfirmCorrection()
+    {
+        if (_correction is not { } c)
+            return;
+        _correction = null;
+        Workspace.Execute(new CorrectKnockoutWinner(c.MatchId, c.Winner, c.Impact.Fingerprint), "已更正勝者");
+    }
+
+    private Task ExportHtmlAsync() =>
+        FileExport.SaveAsync(Workspace, Dialogs, "淘汰籤表.html", "HTML 檔 (*.html)|*.html",
+            () => ExportService.HtmlAsync<PrintableBracket>($"{State.Settings.Name} 淘汰籤表",
+                new Dictionary<string, object?> { ["State"] = State }));
+}

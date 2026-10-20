@@ -1,0 +1,69 @@
+@inject Workspace Workspace
+
+<div class="page-header">
+    <h2>成績登錄</h2>
+    @foreach (var r in Published)
+    {
+        <button class="round-tab @(Selected?.Number == r.Number ? "primary" : "")" @onclick="() => _selected = r.Number">
+            第 @r.Number 輪 @(r.IsCompleted ? "✓" : "")
+        </button>
+    }
+</div>
+
+@if (Selected is not { } round)
+{
+    <div class="panel muted">目前沒有已發布的輪次。</div>
+}
+else
+{
+    <div class="panel">
+        <p class="muted">已完成的輪次可以直接更正成績；更正後系統會重新檢查較後輪次是否過期，但不會自行改動已發布的配對。</p>
+        <table class="grid results">
+            <thead><tr><th class="num">桌號</th><th>先手</th><th>後手</th><th>結果</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < round.Games.Length; i++)
+                {
+                    var board = i + 1;
+                    var g = round.Games[i];
+                    <tr>
+                        <td class="num">@board</td>
+                        <td>@Display.Player(State, g.White)</td>
+                        <td>@Display.Player(State, g.Black)</td>
+                        <td>
+                            <select class="result-select" data-board="@board" value="@g.Result" @onchange="e => Set(round.Number, board, e)">
+                                <option value="@GameResult.None" disabled>— 選擇 —</option>
+                                @foreach (var r in Display.EnterableResults)
+                                {
+                                    <option value="@r">@r.DisplayName()</option>
+                                }
+                            </select>
+                        </td>
+                    </tr>
+                }
+                @if (round.Bye is { } bye)
+                {
+                    <tr><td class="num">輪空</td><td colspan="3">@Display.Player(State, bye)（系統自動登錄 @Display.Score(State.Settings.ByePoints) 分）</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private int? _selected;
+
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private List<Round> Published => [.. State.Rounds.Where(r => r.IsPublished)];
+
+    private Round? Selected =>
+        _selected is { } n && Published.FirstOrDefault(r => r.Number == n) is { } chosen ? chosen
+        : Published.FirstOrDefault(r => !r.IsCompleted) ?? Published.LastOrDefault();
+
+    private void Set(int round, int board, ChangeEventArgs e)
+    {
+        _selected = round;
+        if (Enum.TryParse<GameResult>((string?)e.Value, out var result))
+            Workspace.Execute(new SetResult(round, board, result));
+    }
+}

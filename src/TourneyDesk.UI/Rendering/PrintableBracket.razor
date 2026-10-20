@@ -1,0 +1,14 @@
+@* 分頁後的籤表（列印與匯出用）：每頁一個 SVG *@
+@foreach (var page in BracketLayout.Paginate(State.Bracket!, PageHeight))
+{
+    <div class="print-page">
+        <BracketSvg Bracket="State.Bracket!" Page="page" Players="State.Players" />
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    /// <summary>A4 橫向約可用 680 單位高。</summary>
+    [Parameter] public int PageHeight { get; set; } = 680;
+}

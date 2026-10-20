@@ -1,0 +1,44 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+@inject IPrintService Printer
+
+<div class="page-header">
+    <h2>積分榜</h2>
+    <span class="muted">@Subtitle</span>
+    <span class="spacer"></span>
+    <button @onclick="Printer.PrintAsync">列印</button>
+    <button @onclick="ExportCsv">匯出 CSV…</button>
+    <button @onclick="ExportHtmlAsync">匯出 HTML…</button>
+</div>
+
+<div class="panel">
+    <h3 class="print-only">@State.Settings.Name — 積分榜</h3>
+    <StandingsTable State="State" />
+    @if (State.Settings.Format != TournamentFormat.SingleElimination)
+    {
+        <p class="muted screen-only">同分判定：總分 → 直接對戰（群組內兩兩皆有實際對局時）→ Cut-1 → Buchholz → SB → 實際勝場。分數以 1 / 0.5 / 0 表示。</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private string Subtitle
+    {
+        get
+        {
+            var completed = State.Rounds.Count(r => r.IsCompleted);
+            return State.Settings.Format == TournamentFormat.SingleElimination
+                ? "名次依籤表位置決定"
+                : $"已完成 {completed} 輪";
+        }
+    }
+
+    private void ExportCsv() =>
+        FileExport.Save(Workspace, Dialogs, "積分榜.csv", "CSV 檔 (*.csv)|*.csv", () => ExportService.StandingsCsv(State));
+
+    private Task ExportHtmlAsync() =>
+        FileExport.SaveAsync(Workspace, Dialogs, "積分榜.html", "HTML 檔 (*.html)|*.html",
+            () => ExportService.HtmlAsync<StandingsTable>($"{State.Settings.Name} 積分榜",
+                new Dictionary<string, object?> { ["State"] = State }));
+}

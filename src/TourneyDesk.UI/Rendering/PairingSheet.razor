@@ -1,0 +1,43 @@
+@* 對戰表：每桌一列，含桌號（貼公佈欄用） *@
+<div class="pairing-sheet">
+    <h3>@State.Settings.Name — 第 @Round.Number 輪對戰表</h3>
+    <table class="grid">
+        <thead>
+            <tr><th class="num">桌號</th><th>先手</th><th class="num">分數</th><th>後手</th><th class="num">分數</th><th>結果</th></tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Round.Games.Length; i++)
+            {
+                var g = Round.Games[i];
+                <tr>
+                    <td class="num">@(i + 1)</td>
+                    <td>@Display.Player(State, g.White)</td>
+                    <td class="num">@Display.Score(Scores.GetValueOrDefault(g.White))</td>
+                    <td>@Display.Player(State, g.Black)</td>
+                    <td class="num">@Display.Score(Scores.GetValueOrDefault(g.Black))</td>
+                    <td>@(g.Result.HasResult() ? g.Result.DisplayName() : "")</td>
+                </tr>
+            }
+            @if (Round.Bye is { } bye)
+            {
+                <tr><td class="num">—</td><td colspan="5">輪空：@Display.Player(State, bye)（得 @Display.Score(State.Settings.ByePoints) 分）</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Round Round { get; set; } = default!;
+
+    /// <summary>賽前分數（本輪之前）。</summary>
+    private Dictionary<int, int> Scores
+    {
+        get
+        {
+            var sheet = ScoreSheet.Build(State, Round.Number);
+            return State.Players.Keys.ToDictionary(id => id, sheet.Total);
+        }
+    }
+}

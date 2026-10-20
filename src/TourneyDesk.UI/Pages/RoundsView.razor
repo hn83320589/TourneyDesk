@@ -1,0 +1,250 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+@inject IPrintService Printer
+
+<div class="page-header">
+    <h2>輪次與配對</h2>
+    @foreach (var r in State.Rounds)
+    {
+        <button class="round-tab @(Selected?.Number == r.Number ? "primary" : "")" @onclick="() => _selected = r.Number">
+            第 @r.Number 輪@(r.Status == RoundStatus.Draft ? "（草稿）" : Workspace.StaleRounds.Contains(r.Number) ? "（過期）" : "")
+        </button>
+    }
+    <span class="spacer"></span>
+    @if (State.Settings.Format == TournamentFormat.Swiss)
+    {
+        <button class="primary generate-round" disabled="@(!CanGenerate)" @onclick="GenerateAsync">產生第 @(State.Rounds.Length + 1) 輪配對</button>
+    }
+    else if (!State.IsStarted)
+    {
+        <button class="primary start-rr" @onclick="StartRoundRobin">產生全部賽程</button>
+    }
+    @if (Selected is not null)
+    {
+        <button @onclick="PrintAsync">列印對戰表</button>
+        <button @onclick="ExportCsv">匯出 CSV…</button>
+        <button @onclick="ExportHtmlAsync">匯出 HTML…</button>
+    }
+</div>
+
+@if (!Workspace.StaleRounds.IsEmpty)
+{
+    <div class="panel stale-warning">
+        <span class="badge warn">過期</span>
+        依目前成績重新計算，第 @string.Join("、", Workspace.StaleRounds) 輪的配對已與發布時的最佳建議不同。系統不會自行改動已發布的配對。
+        <button class="repair" @onclick="() => PrepareRepairAsync(Workspace.StaleRounds[0])">從第 @Workspace.StaleRounds[0] 輪起重新配對…</button>
+    </div>
+}
+else if (Workspace.IsCheckingStaleness)
+{
+    <p class="muted">正在檢查較後輪次是否過期…</p>
+}
+
+@if (Selected is null)
+{
+    <div class="panel muted">
+        @(State.Settings.Format == TournamentFormat.Swiss ? "尚未產生任何輪次。新增選手後按「產生第 1 輪配對」。" : "尚未產生賽程。")
+    </div>
+}
+else
+{
+    var round = Selected;
+    var isDraft = round.Status == RoundStatus.Draft;
+    <div class="panel screen-only">
+        @if (isDraft)
+        {
+            <p class="muted">草稿：依序點選兩位選手即可交換位置。確認無誤後發布。</p>
+        }
+        <table class="grid pairings">
+            <thead><tr><th class="num">桌號</th><th>先手</th><th>後手</th><th>結果</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < round.Games.Length; i++)
+                {
+                    var g = round.Games[i];
+                    <tr class="@(Violating(round, g) ? "violation" : "")">
+                        <td class="num">@(i + 1)</td>
+                        <td>@PlayerCell(round, g.White)</td>
+                        <td>@PlayerCell(round, g.Black)</td>
+                        <td>@(g.Result.HasResult() ? g.Result.DisplayName() : "")</td>
+                    </tr>
+                }
+                @if (round.Bye is { } bye)
+                {
+                    <tr><td class="num">輪空</td><td colspan="3">@PlayerCell(round, bye)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (isDraft && State.Settings.Format == TournamentFormat.Swiss)
+    {
+        var current = SwissRoundPlanner.Evaluate(State, round);
+        var best = round.EngineProposal is { } p ? SwissObjective.Evaluate(SwissRoundInput.FromState(State, round.Number), p) : current;
+        <div class="panel evaluation">
+            <h3>與最佳解比較</h3>
+            <table class="grid">
+                <thead><tr><th></th><th class="num">① 重複對戰</th><th class="num">② 重複輪空</th><th class="num">③ 輪空者排名</th><th class="num">④ 分差平方和</th></tr></thead>
+                <tbody>
+                    <tr><td>最佳解</td>@ObjectiveCells(best.Objective)</tr>
+                    <tr class="current-objective"><td>目前方案</td>@ObjectiveCells(current.Objective)</tr>
+                </tbody>
+            </table>
+            @if (current.Objective.CompareTo(best.Objective) == 0)
+            {
+                <p><span class="badge ok">與最佳解相同</span></p>
+            }
+            else
+            {
+                <p><span class="badge warn differs">與最佳解不同</span></p>
+            }
+            @if (!current.Violations.IsEmpty)
+            {
+                <ul class="violations">
+                    @foreach (var v in current.Violations)
+                    {
+                        <li><span class="badge danger">違規</span> @ViolationText(v)</li>
+                    }
+                </ul>
+                <label><input type="checkbox" class="force-publish" @bind="_force" /> 強制採用（將記入異動紀錄）</label>
+            }
+            <div class="page-header" style="margin-top: 12px">
+                <button class="primary publish" disabled="@(!current.Violations.IsEmpty && !_force)" @onclick="() => Publish(round.Number)">發布第 @round.Number 輪</button>
+                <button class="danger discard" @onclick="() => Discard(round.Number)">作廢草稿</button>
+            </div>
+        </div>
+    }
+
+    <div class="print-only">
+        <PairingSheet State="State" Round="round" />
+    </div>
+}
+
+@if (_repair is { } repair)
+{
+    <ImpactConfirm Title="@($"從第 {repair.Round} 輪起重新配對")"
+                   Message="@($"將清除第 {repair.Round} 輪起的配對與成績，並依目前成績重新產生第 {repair.Round} 輪的草稿。")"
+                   Impact="repair.Impact"
+                   OnCancel="() => _repair = null"
+                   OnConfirm="ConfirmRepair" />
+}
+
+@code {
+    private int? _selected;
+    private int? _picked;
+    private bool _force;
+    private (int Round, ClearImpact Impact, Pairing Proposal)? _repair;
+
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private Round? Selected =>
+        State.Rounds.IsEmpty ? null
+        : _selected is { } n && n <= State.Rounds.Length ? State.GetRound(n)
+        : State.Rounds[^1];
+
+    private bool CanGenerate =>
+        State.LastRound is not { Status: RoundStatus.Draft } && State.LastRound is not { IsCompleted: false }
+        && State.Rounds.Length < State.Settings.SwissRounds && State.Players.Count > 0;
+
+    private RenderFragment PlayerCell(Round round, int id) => __builder =>
+    {
+        if (round.Status == RoundStatus.Draft)
+        {
+            <span class="board-cell @(_picked == id ? "picked" : "")" data-player="@id" @onclick="() => Pick(round.Number, id)">@Display.Player(State, id)</span>
+        }
+        else
+        {
+            @Display.Player(State, id)
+        }
+    };
+
+    private RenderFragment ObjectiveCells(ObjectiveVector o) => __builder =>
+    {
+        <td class="num">@o.Repeats</td>
+        <td class="num">@o.ByeRepeat</td>
+        <td class="num">@(o.ByeRank?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "—")</td>
+        <td class="num">@o.ScoreDiffSquares</td>
+    };
+
+    private bool Violating(Round round, Game g) =>
+        round.Status == RoundStatus.Draft && State.Settings.Format == TournamentFormat.Swiss
+        && SwissRoundInput.FromState(State, round.Number).HaveMet(g.White, g.Black);
+
+    private string ViolationText(PairingViolation v) => v.Kind == ViolationKind.RepeatPairing
+        ? $"重複對戰：{Display.Player(State, v.PlayerA)} vs {Display.Player(State, v.PlayerB!.Value)}"
+        : $"重複輪空：{Display.Player(State, v.PlayerA)}";
+
+    private void Pick(int round, int id)
+    {
+        if (_picked is null)
+        {
+            _picked = id;
+            return;
+        }
+
+        var first = _picked.Value;
+        _picked = null;
+        if (first != id)
+            Workspace.Execute(new SwapInDraft(round, first, id));
+    }
+
+    private async Task GenerateAsync()
+    {
+        var round = State.Rounds.Length + 1;
+        var result = await Workspace.RunInBackgroundAsync($"計算第 {round} 輪配對",
+            (s, progress, ct) => SwissRoundPlanner.Propose(s, round, progress, ct));
+        if (result is not null && Workspace.Execute(new GenerateSwissRound(round, result.Pairing), $"已產生第 {round} 輪配對草稿").Succeeded)
+            _selected = round;
+    }
+
+    private void StartRoundRobin() => Workspace.Execute(new StartRoundRobin(), "已產生全部賽程");
+
+    private void Publish(int round)
+    {
+        if (Workspace.Execute(new PublishRound(round, _force), $"已發布第 {round} 輪").Succeeded)
+            _force = false;
+    }
+
+    private void Discard(int round) => Workspace.Execute(new DiscardDraft(round), "已作廢草稿");
+
+    private async Task PrepareRepairAsync(int fromRound)
+    {
+        ClearImpact impact;
+        try
+        {
+            impact = RepairFromRound.Preview(State, fromRound);
+        }
+        catch (DomainException ex)
+        {
+            Workspace.ShowError(ex.Message);
+            return;
+        }
+
+        var result = await Workspace.RunInBackgroundAsync($"重新計算第 {fromRound} 輪配對",
+            (s, progress, ct) => SwissRoundPlanner.Propose(s, fromRound, progress, ct));
+        if (result is not null)
+            _repair = (fromRound, impact, result.Pairing);
+    }
+
+    private void ConfirmRepair()
+    {
+        if (_repair is not { } r)
+            return;
+        _repair = null;
+        if (Workspace.Execute(new RepairFromRound(r.Round, r.Proposal, r.Impact.Fingerprint), $"已從第 {r.Round} 輪起重新配對").Succeeded)
+            _selected = r.Round;
+    }
+
+    private Task PrintAsync() => Printer.PrintAsync();
+
+    private void ExportCsv() =>
+        FileExport.Save(Workspace, Dialogs, $"第{Selected!.Number}輪對戰表.csv", "CSV 檔 (*.csv)|*.csv",
+            () => ExportService.PairingsCsv(State, Selected!));
+
+    private Task ExportHtmlAsync()
+    {
+        var round = Selected!;
+        return FileExport.SaveAsync(Workspace, Dialogs, $"第{round.Number}輪對戰表.html", "HTML 檔 (*.html)|*.html",
+            () => ExportService.HtmlAsync<PairingSheet>($"{State.Settings.Name} 第 {round.Number} 輪對戰表",
+                new Dictionary<string, object?> { ["State"] = State, ["Round"] = round }));
+    }
+}

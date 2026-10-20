@@ -1,0 +1,18 @@
+@implements IDisposable
+@inject Workspace Workspace
+
+@if (Workspace.Notice is { } notice)
+{
+    <div class="notice @notice.Kind.ToString().ToLowerInvariant()" role="status">
+        <span class="message">@notice.Message</span>
+        <button class="link" @onclick="Workspace.DismissNotice" aria-label="關閉通知">關閉</button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Workspace.Changed -= Refresh;
+}

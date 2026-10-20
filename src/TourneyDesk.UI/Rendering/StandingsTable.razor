@@ -1,0 +1,48 @@
+@* 積分榜（畫面、列印、匯出共用） *@
+@if (State.Settings.Format == TournamentFormat.SingleElimination && State.Bracket is not null)
+{
+    <table class="grid">
+        <thead><tr><th class="num">名次</th><th class="num">編號</th><th>姓名</th><th>成績</th></tr></thead>
+        <tbody>
+            @foreach (var p in KnockoutStandings.Compute(State))
+            {
+                <tr><td class="num">@p.Rank</td><td class="num">@p.RegNo</td><td>@p.Name</td><td>@p.Placement</td></tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <table class="grid standings">
+        <thead>
+            <tr>
+                <th class="num">名次</th><th class="num">編號</th><th>姓名</th><th class="num">總分</th>
+                <th class="num" title="僅在並列群組內兩兩皆有實際對局時適用">直接對戰</th>
+                <th class="num">Cut-1</th><th class="num">Buchholz</th><th class="num">SB</th><th class="num">勝場</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Rows)
+            {
+                <tr>
+                    <td class="num">@r.Rank</td>
+                    <td class="num">@r.RegNo</td>
+                    <td>@r.Name</td>
+                    <td class="num">@Display.Score(r.Score)</td>
+                    <td class="num">@(r.DirectEncounter is { } de ? Display.Score(de) : "")</td>
+                    <td class="num">@Display.Score(r.BuchholzCut1)</td>
+                    <td class="num">@Display.Score(r.Buchholz)</td>
+                    <td class="num">@Display.Quarter(r.SonnebornBerger)</td>
+                    <td class="num">@r.Wins</td>
+                    <td>@(r.Withdrawn ? "退賽" : "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private ImmutableArray<StandingRow> Rows => StandingsCalculator.Compute(State);
+}

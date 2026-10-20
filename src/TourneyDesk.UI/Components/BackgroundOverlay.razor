@@ -1,0 +1,25 @@
+@implements IDisposable
+@inject Workspace Workspace
+
+@if (Workspace.BackgroundWork is { } work)
+{
+    <Modal Title="@work">
+        <ChildContent>
+            <div class="progress" role="progressbar" aria-valuenow="@Workspace.BackgroundProgress" aria-valuemin="0" aria-valuemax="100">
+                <div style="width: @(Workspace.BackgroundProgress)%"></div>
+            </div>
+            <p class="muted">@Workspace.BackgroundProgress%　計算期間無法修改賽事；取消後不會留下任何變更。</p>
+        </ChildContent>
+        <Actions>
+            <button class="cancel-background" @onclick="Workspace.CancelBackground">取消</button>
+        </Actions>
+    </Modal>
+}
+
+@code {
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Workspace.Changed -= Refresh;
+}

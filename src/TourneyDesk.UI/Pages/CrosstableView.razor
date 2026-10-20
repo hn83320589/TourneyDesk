@@ -1,0 +1,31 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+@inject IPrintService Printer
+
+<div class="page-header">
+    <h2>交叉表</h2>
+    <span class="muted">1 勝、½ 和、0 負、+ 棄權勝、- 棄權負、= 雙方棄權、· 未登錄</span>
+    <span class="spacer"></span>
+    <button @onclick="Printer.PrintAsync">列印</button>
+    <button @onclick="ExportHtmlAsync">匯出 HTML…</button>
+</div>
+
+<div class="panel screen-only" style="overflow: auto">
+    @{
+        var data = Crosstable.Build(State);
+    }
+    <CrosstableSvg Data="data" Page="CrosstableLayout.Full(data.Players.Length)" />
+</div>
+
+<div class="print-only">
+    <PrintableCrosstable State="State" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    private Task ExportHtmlAsync() =>
+        FileExport.SaveAsync(Workspace, Dialogs, "交叉表.html", "HTML 檔 (*.html)|*.html",
+            () => ExportService.HtmlAsync<PrintableCrosstable>($"{State.Settings.Name} 交叉表",
+                new Dictionary<string, object?> { ["State"] = State }));
+}

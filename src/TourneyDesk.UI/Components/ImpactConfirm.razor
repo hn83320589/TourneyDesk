@@ -1,0 +1,37 @@
+@* 破壞性操作（重新配對、連鎖清除）前列出影響範圍並要求確認 *@
+<Modal Title="@Title">
+    <ChildContent>
+        <p>@Message</p>
+        @if (Impact.IsEmpty)
+        {
+            <p class="muted">沒有其他場次會受到影響。</p>
+        }
+        else
+        {
+            <p>以下 @Impact.Items.Length 項將被清除：</p>
+            <ul class="impact">
+                @foreach (var item in Impact.Items)
+                {
+                    <li>@item</li>
+                }
+            </ul>
+        }
+        <p class="muted">此動作可用「復原」一次還原。</p>
+    </ChildContent>
+    <Actions>
+        <button @onclick="OnCancel">取消</button>
+        <button class="primary confirm" @onclick="OnConfirm">確認執行</button>
+    </Actions>
+</Modal>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string Message { get; set; } = "";
+
+    [Parameter, EditorRequired] public ClearImpact Impact { get; set; } = default!;
+
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

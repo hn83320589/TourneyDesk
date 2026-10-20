@@ -1,0 +1,18 @@
+@* 分頁後的交叉表（列印與匯出用） *@
+@{
+    var data = Crosstable.Build(State);
+}
+@foreach (var page in CrosstableLayout.Paginate(data.Players.Length, RowsPerPage, ColumnsPerPage))
+{
+    <div class="print-page">
+        <CrosstableSvg Data="data" Page="page" />
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    [Parameter] public int RowsPerPage { get; set; } = 30;
+
+    [Parameter] public int ColumnsPerPage { get; set; } = 20;
+}

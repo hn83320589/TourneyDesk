@@ -1,0 +1,29 @@
+@inject Workspace Workspace
+
+<div class="page-header">
+    <h2>異動紀錄</h2>
+    <span class="muted">只能新增、不可修改；復原與重做也會記錄。</span>
+</div>
+
+<div class="vlist" style="--cols: 160px 110px 1.4fr 1fr 1fr">
+    <div class="vlist-header"><span>時間</span><span>種類</span><span>對象</span><span>變更前</span><span>變更後</span></div>
+    <div class="vlist-body">
+        <Virtualize Items="_entries" ItemSize="32" Context="a">
+            <div class="vlist-row audit-row" title="@($"{a.Target}\n{a.Before} → {a.After}")">
+                <span>@Display.Time(a.Timestamp)</span>
+                <span>@a.Kind</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">@a.Target</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">@a.Before</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">@a.After</span>
+            </div>
+        </Virtualize>
+    </div>
+</div>
+
+@code {
+    private List<Core.Session.AuditEntry> _entries = [];
+
+    [Parameter, EditorRequired] public TournamentState State { get; set; } = default!;
+
+    protected override void OnParametersSet() => _entries = [.. Workspace.ReadAudit().Reverse()];
+}

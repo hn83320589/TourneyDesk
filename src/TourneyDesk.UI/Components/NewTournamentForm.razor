@@ -1,0 +1,76 @@
+@inject Workspace Workspace
+@inject IFileDialogService Dialogs
+
+<Modal Title="新增賽事">
+    <ChildContent>
+        <div class="form-grid">
+            <label for="nt-name">名稱</label>
+            <input id="nt-name" @bind="_name" />
+            <label for="nt-format">賽制</label>
+            <select id="nt-format" value="@_format" @onchange="FormatChanged">
+                @foreach (var f in Enum.GetValues<TournamentFormat>())
+                {
+                    <option value="@f">@f.DisplayName()</option>
+                }
+            </select>
+            @if (_format == TournamentFormat.Swiss)
+            {
+                <label for="nt-rounds">總輪數</label>
+                <input id="nt-rounds" type="number" min="1" max="15" @bind="_rounds" />
+            }
+            @if (_format != TournamentFormat.SingleElimination)
+            {
+                <label for="nt-bye">輪空得分</label>
+                <select id="nt-bye" @bind="_bye">
+                    <option value="0">0 分</option>
+                    <option value="1">0.5 分</option>
+                    <option value="2">1 分</option>
+                </select>
+            }
+            else
+            {
+                <label for="nt-third">季軍戰</label>
+                <input id="nt-third" type="checkbox" @bind="_thirdPlace" />
+            }
+        </div>
+    </ChildContent>
+    <Actions>
+        <button @onclick="OnDone">取消</button>
+        <button class="primary create" @onclick="Create">選擇存放位置並建立…</button>
+    </Actions>
+</Modal>
+
+@code {
+    private string _name = "社區桌球季賽";
+    private TournamentFormat _format = TournamentFormat.Swiss;
+    private int _rounds = 5;
+    private int _bye = TournamentSettings.DefaultByePoints(TournamentFormat.Swiss);
+    private bool _thirdPlace = true;
+
+    [Parameter] public EventCallback OnDone { get; set; }
+
+    private void FormatChanged(ChangeEventArgs e)
+    {
+        _format = Enum.Parse<TournamentFormat>((string)e.Value!);
+        _bye = TournamentSettings.DefaultByePoints(_format); // 瑞士制預設 2，循環賽預設 0
+    }
+
+    private async Task Create()
+    {
+        TournamentSettings settings;
+        try
+        {
+            settings = TournamentSettings.Create(_name, _format, _rounds, _bye, _thirdPlace);
+        }
+        catch (DomainException ex)
+        {
+            Workspace.ShowError(ex.Message);
+            return;
+        }
+
+        if (Dialogs.PickTournamentToCreate(settings.Name) is not { } path)
+            return;
+        if (Workspace.Create(path, settings))
+            await OnDone.InvokeAsync();
+    }
+}

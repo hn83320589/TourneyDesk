@@ -1,3 +1,108 @@
+@implements IDisposable
+@inject Workspace Workspace
+
 <div class="shell">
-    <h1>賽事裁判台 TourneyDesk</h1>
+    <header class="topbar">
+        <span class="title">賽事裁判台 TourneyDesk</span>
+        @if (Workspace.State is { } s)
+        {
+            <strong class="tournament-name">@s.Settings.Name</strong>
+            <span class="badge">@s.Settings.Format.DisplayName()</span>
+            <span class="file" title="@Workspace.FilePath">@Workspace.FilePath</span>
+            <button class="undo" disabled="@(!(Workspace.Session?.CanUndo ?? false))" title="@Workspace.Session?.UndoDescription" @onclick="() => Workspace.Undo()">↶ 復原</button>
+            <button class="redo" disabled="@(!(Workspace.Session?.CanRedo ?? false))" title="@Workspace.Session?.RedoDescription" @onclick="() => Workspace.Redo()">↷ 重做</button>
+            <button class="close-file" @onclick="Workspace.Close">關閉賽事</button>
+        }
+        else
+        {
+            <span class="file"></span>
+        }
+    </header>
+
+    <NoticeBar />
+
+    @if (Workspace.State is { } state)
+    {
+        <nav class="tabs">
+            @foreach (var tab in Tabs(state))
+            {
+                <button class="tab @(tab == _tab ? "active" : "")" @onclick="() => _tab = tab">@TabName(tab)</button>
+            }
+        </nav>
+        <main class="content">
+            <ErrorBoundary @ref="_errors">
+                <ChildContent>
+                    @switch (_tab)
+                    {
+                        case Tab.Players: <PlayersView State="state" /> break;
+                        case Tab.Rounds: <RoundsView State="state" /> break;
+                        case Tab.Results: <ResultsView State="state" /> break;
+                        case Tab.Standings: <StandingsView State="state" /> break;
+                        case Tab.Crosstable: <CrosstableView State="state" /> break;
+                        case Tab.Bracket: <BracketView State="state" /> break;
+                        case Tab.Audit: <AuditView State="state" /> break;
+                    }
+                </ChildContent>
+                <ErrorContent Context="ex">
+                    <div class="panel">
+                        <p class="notice error">畫面發生錯誤：@ex.Message</p>
+                        <button @onclick="Recover">返回</button>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+        </main>
+    }
+    else
+    {
+        <main class="content">
+            <StartScreen />
+        </main>
+    }
+
+    <BackgroundOverlay />
 </div>
+
+@code {
+    public enum Tab
+    {
+        Players,
+        Rounds,
+        Results,
+        Standings,
+        Crosstable,
+        Bracket,
+        Audit,
+    }
+
+    private Tab _tab = Tab.Players;
+    private ErrorBoundary? _errors;
+
+    private static IEnumerable<Tab> Tabs(TournamentState s) =>
+        s.Settings.Format == TournamentFormat.SingleElimination
+            ? [Tab.Players, Tab.Bracket, Tab.Standings, Tab.Audit]
+            : [Tab.Players, Tab.Rounds, Tab.Results, Tab.Standings, Tab.Crosstable, Tab.Audit];
+
+    private static string TabName(Tab t) => t switch
+    {
+        Tab.Players => "選手",
+        Tab.Rounds => "輪次與配對",
+        Tab.Results => "成績登錄",
+        Tab.Standings => "積分榜",
+        Tab.Crosstable => "交叉表",
+        Tab.Bracket => "淘汰籤表",
+        Tab.Audit => "異動紀錄",
+        _ => t.ToString(),
+    };
+
+    protected override void OnInitialized() => Workspace.Changed += Refresh;
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private void Recover()
+    {
+        _tab = Tab.Players;
+        _errors?.Recover();
+    }
+
+    public void Dispose() => Workspace.Changed -= Refresh;
+}

@@ -9,6 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="export.css" LogicalName="TourneyDesk.UI.export.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TourneyDesk.Core\TourneyDesk.Core.csproj" />
   </ItemGroup>
 

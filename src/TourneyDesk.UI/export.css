@@ -1,0 +1,20 @@
+/* 匯出 HTML 的內嵌樣式（不引用任何外部資源） */
+body.export { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; font-size: 14px; color: #1f2328; margin: 24px; }
+h1 { font-size: 20px; }
+table.grid { border-collapse: collapse; width: 100%; }
+table.grid th, table.grid td { border: 1px solid #c8ced8; padding: 4px 8px; text-align: left; }
+table.grid th { background: #f0f2f5; }
+table.grid td.num, table.grid th.num { text-align: right; }
+svg.bracket rect.box { fill: #fff; stroke: #b9c0cc; }
+svg.bracket line.divider { stroke: #d8dce3; }
+svg.bracket text { font-size: 12px; fill: #1f2328; }
+svg.bracket text.winner { font-weight: 700; }
+svg.bracket text.pending, svg.bracket text.empty, svg.bracket text.label { fill: #5d6673; }
+svg.bracket text.label { font-size: 10px; }
+svg.bracket polyline.link { fill: none; stroke: #b9c0cc; }
+svg.crosstable rect.cell { fill: #fff; stroke: #d8dce3; }
+svg.crosstable rect.diag { fill: #eceff3; stroke: #d8dce3; }
+svg.crosstable rect.head { fill: #f0f2f5; stroke: #d8dce3; }
+svg.crosstable text { font-size: 12px; fill: #1f2328; }
+.print-page { page-break-after: always; margin-bottom: 24px; }
+@media print { body.export { margin: 0; } h1 { display: none; } }

@@ -13,6 +13,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TourneyDesk.UI\TourneyDesk.UI.csproj" />
+    <ProjectReference Include="..\..\src\TourneyDesk.Core\TourneyDesk.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\Commands.cs" Link="Shared\Commands.cs" />
+    <Compile Include="..\TourneyDesk.Core.Tests\TestSupport\SwissFlow.cs" Link="Shared\SwissFlow.cs" />
   </ItemGroup>
 
   <ItemGroup>

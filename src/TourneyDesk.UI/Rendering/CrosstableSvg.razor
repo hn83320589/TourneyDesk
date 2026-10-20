@@ -1,0 +1,61 @@
+@* 依 Core 的 CrosstableLayout 繪製交叉表的一頁（每組圖形包在 <g> 中，避免 Razor 把 <text> 視為特殊標籤） *@
+@{
+    var o = Options;
+    var scoreX = o.RankWidth + o.NameWidth + (Page.Columns.Length * o.CellWidth);
+}
+<svg class="crosstable" xmlns="http://www.w3.org/2000/svg" width="@Page.Width" height="@Page.Height" viewBox="0 0 @Page.Width @Page.Height">
+    <g>
+        <rect class="head" x="0" y="0" width="@o.RankWidth" height="@o.HeaderHeight" />
+        <text x="@(o.RankWidth / 2)" y="@(o.HeaderHeight / 2 + 4)" text-anchor="middle">名次</text>
+        <rect class="head" x="@o.RankWidth" y="0" width="@o.NameWidth" height="@o.HeaderHeight" />
+        <text x="@(o.RankWidth + 6)" y="@(o.HeaderHeight / 2 + 4)">選手</text>
+    </g>
+    @for (var j = 0; j < Page.Columns.Length; j++)
+    {
+        var x = o.RankWidth + o.NameWidth + (j * o.CellWidth);
+        <g>
+            <rect class="head" x="@x" y="0" width="@o.CellWidth" height="@o.HeaderHeight" />
+            <text x="@(x + o.CellWidth / 2)" y="@(o.HeaderHeight / 2 + 4)" text-anchor="middle">@Display.Int(Page.Columns[j] + 1)</text>
+        </g>
+    }
+    @if (Page.ShowScore)
+    {
+        <g>
+            <rect class="head" x="@scoreX" y="0" width="@o.ScoreWidth" height="@o.HeaderHeight" />
+            <text x="@(scoreX + o.ScoreWidth / 2)" y="@(o.HeaderHeight / 2 + 4)" text-anchor="middle">總分</text>
+        </g>
+    }
+    @for (var i = 0; i < Page.Rows.Length; i++)
+    {
+        var row = Data.Players[Page.Rows[i]];
+        var y = o.HeaderHeight + (i * o.RowHeight);
+        <g class="row-head">
+            <rect class="head" x="0" y="@y" width="@o.RankWidth" height="@o.RowHeight" />
+            <text x="@(o.RankWidth / 2)" y="@(y + o.RowHeight / 2 + 4)" text-anchor="middle">@Display.Int(row.Rank)</text>
+            <rect class="head" x="@o.RankWidth" y="@y" width="@o.NameWidth" height="@o.RowHeight" />
+            <text x="@(o.RankWidth + 6)" y="@(y + o.RowHeight / 2 + 4)">@($"{Display.Int(Page.Rows[i] + 1)}. #{row.RegNo} {row.Name}")</text>
+            @if (Page.ShowScore)
+            {
+                <g>
+                    <rect class="head" x="@scoreX" y="@y" width="@o.ScoreWidth" height="@o.RowHeight" />
+                    <text x="@(scoreX + o.ScoreWidth / 2)" y="@(y + o.RowHeight / 2 + 4)" text-anchor="middle">@Display.Score(row.Score)</text>
+                </g>
+            }
+        </g>
+    }
+    @foreach (var cell in Page.Cells)
+    {
+        <g class="cell" data-row="@cell.Row" data-col="@cell.Column">
+            <rect class="@(cell.Row == cell.Column ? "diag" : "cell")" x="@cell.X" y="@cell.Y" width="@cell.Width" height="@cell.Height" />
+            <text x="@(cell.X + cell.Width / 2)" y="@(cell.Y + cell.Height / 2 + 4)" text-anchor="middle">@Data.Cells[cell.Row][cell.Column]</text>
+        </g>
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public CrosstableData Data { get; set; } = default!;
+
+    [Parameter, EditorRequired] public CrosstablePage Page { get; set; } = default!;
+
+    [Parameter] public CrosstableLayoutOptions Options { get; set; } = new();
+}
