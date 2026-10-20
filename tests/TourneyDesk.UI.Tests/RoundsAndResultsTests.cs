@@ -66,13 +66,15 @@ public class RoundsAndResultsTests : UiTestBase
     }
 
     [Fact]
-    public void Stale_rounds_are_flagged_and_repair_requires_confirmation()
+    public async Task Stale_rounds_are_flagged_and_repair_requires_confirmation()
     {
         OpenWith(SwissFlow.NewSwiss(4).NextRound().Results(GameResult.WhiteWin, GameResult.WhiteWin).NextRound());
         Workspace.Execute(new SetResult(1, 2, GameResult.BlackWin)); // 更正 → 第 2 輪過期
+        // 直接等待背景判定完成（RoundsView 本身不監聽 Workspace.Changed，重繪由外層 Shell 負責），
+        // 避免「判定在首次渲染之後才完成、元件不再重繪」造成的不確定性
+        await Workspace.RefreshStalenessAsync().WaitAsync(BackgroundTimeout);
+        Assert.Equal([2], Workspace.StaleRounds.ToArray());
         var cut = RenderRounds();
-        cut.WaitForAssertion(() => Assert.Equal([2], Workspace.StaleRounds.ToArray()), BackgroundTimeout);
-        cut.Render(p => p.Add(x => x.State, Workspace.State!));
 
         Assert.Contains("第 2 輪的配對已與發布時的最佳建議不同", cut.Find(".stale-warning").TextContent);
         Assert.Equal(2, Workspace.State!.Rounds.Length); // 系統未自行改動
