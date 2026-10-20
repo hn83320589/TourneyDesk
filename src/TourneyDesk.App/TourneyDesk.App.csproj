@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TourneyDesk.Core\TourneyDesk.Core.csproj" />
+    <ProjectReference Include="..\TourneyDesk.Data\TourneyDesk.Data.csproj" />
+    <ProjectReference Include="..\TourneyDesk.UI\TourneyDesk.UI.csproj" />
+  </ItemGroup>
+
+  <!-- WebView2 套件會無條件加入 WPF 控制項組件；本專案不使用 WPF，移除以避免 WindowsBase 版本衝突 -->
+  <Target Name="RemoveWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

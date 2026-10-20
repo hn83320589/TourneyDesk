@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      # 雲端 runner 比開發機慢，效能測試門檻放寬為 2 倍（README 數據以本機實測為準）
+      TOURNEYDESK_PERF_FACTOR: 2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore TourneyDesk.sln
+
+      - name: Build
+        run: dotnet build TourneyDesk.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test TourneyDesk.sln -c Release --no-build --logger "trx;LogFilePrefix=results" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+
+      - name: Publish win-x64
+        run: dotnet publish src/TourneyDesk.App/TourneyDesk.App.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+      - name: Upload win-x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TourneyDesk-win-x64
+          path: publish/win-x64

@@ -1,0 +1,12 @@
+/* 所有資源皆為本機檔案，不引用任何 CDN 或網路字型 */
+html, body {
+    margin: 0;
+    font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Segoe UI", sans-serif;
+    font-size: 14px;
+    color: #1f2328;
+    background: #ffffff;
+}
+
+.shell {
+    padding: 16px;
+}

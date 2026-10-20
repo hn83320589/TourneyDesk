@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 與 .NET 9 對齊：Microsoft.* 套件一律固定 9.0.x -->
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.21" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="9.0.21" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.WindowsForms" Version="9.0.120" />
+    <!-- 測試 -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="bunit" Version="2.12.5" />
+  </ItemGroup>
+</Project>
