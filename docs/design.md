@@ -299,5 +299,9 @@ while remaining 非空:
 | 效能測試 | 只在 Release 組態執行（`ReleaseOnlyFact`），CI 以 `TOURNEYDESK_PERF_FACTOR=2` 放寬 | Debug 未最佳化、耗時約 5 倍，不具代表性 |
 | 啟動參數 | `TourneyDesk.App.exe <賽事檔>` 直接開啟 | 雙擊 .tourney 檔、示範與截圖 |
 | UI 元件命名 | 頁面為 `*View`（PlayersView…） | 避免與 Core 版面計算的 `BracketPage`、`CrosstablePage` 同名 |
+| 當機回復 | 唯讀檢查遇到熱日誌（SQLITE_READONLY_ROLLBACK）時判為 NeedsRecovery，持鎖後以讀寫連線讓 SQLite 回滾 | 外部審查回報：原本誤判為損毀，當機後檔案打不開 |
+| 過期判定的參賽者 | 發布後才退賽的選手仍視為該輪參賽者 | 外部審查回報：正常退賽被誤判為過期 |
+| 過期判定的快取 | 以各輪輸入指紋快取引擎建議 | 外部審查回報：連續登錄成績時 CPU 滿載 |
+| 第二階段位元預算 | 主要成本只涵蓋剩餘緊邊的成本範圍 | 每段多放幾層、分段變少（500 人最慢 2.3 → 1.96 秒） |
 
 所有里程碑 M0～M11 已完成；實測數據與已知限制見 README。

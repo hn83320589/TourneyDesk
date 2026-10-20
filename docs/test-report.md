@@ -6,7 +6,7 @@
 | 測試日期 | 2026-10-20 |
 | 測試環境 | Intel Core i7-13700（8P+8E）、32 GB RAM、Windows 11 Pro 10.0.26200、.NET SDK 9.0.315／Runtime 9.0.17、WebView2 Runtime（系統內建） |
 | 測試框架 | xUnit 2.9.3、bUnit 2.12.5（自寫性質測試產生器，固定種子） |
-| 結論 | **自動化測試 307／307 通過；驗收標準 1～25 全部符合**（CI 綠燈，見[第 6 節](#6-ci驗收-25)） |
+| 結論 | **自動化測試 319／319 通過；驗收標準 1～25 全部符合**（CI 綠燈，見[第 6 節](#6-ci驗收-25)）。外部審查回報的問題已全部處置，見[第 10 節](#10-外部審查回報與處置) |
 
 ---
 
@@ -20,12 +20,12 @@ dotnet test  TourneyDesk.sln                # Debug：效能測試標示為略�
 
 | 測試專案 | 案例數 | 通過 | 失敗 | 略過 |
 |---|---|---|---|---|
-| TourneyDesk.Core.Tests | 249 | 249 | 0 | 0 |
-| TourneyDesk.Data.Tests | 23 | 23 | 0 | 0 |
-| TourneyDesk.UI.Tests（bUnit） | 35 | 35 | 0 | 0 |
-| **合計（Release）** | **307** | **307** | **0** | **0** |
+| TourneyDesk.Core.Tests | 259 | 259 | 0 | 0 |
+| TourneyDesk.Data.Tests | 24 | 24 | 0 | 0 |
+| TourneyDesk.UI.Tests（bUnit） | 36 | 36 | 0 | 0 |
+| **合計（Release）** | **319** | **319** | **0** | **0** |
 
-Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug 未最佳化、耗時約 5 倍，不具代表性）。
+Debug 組態：317 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug 未最佳化、耗時約 5 倍，不具代表性）。
 
 ### 穩定性
 驗收過程中發現 1 個偶發失敗的 UI 測試（見[第 5 節](#5-測試期間發現並修正的問題)），修正根因後：
@@ -34,12 +34,28 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 |---|---|---|
 | Release | 15 | 0 |
 | Debug | 10 | 0 |
+| 外部審查修正後：Release／Debug | 5／5 | 0／0 |
 | Release（最終證據執行，含 TRX） | 1 | 0 |
 
 ### 各測試類別
 
 | 類別 | 案例 | 類別 | 案例 |
 |---|---|---|---|
+| Core.Architecture（相依規則、禁用浮點數） | 2 | Core.Swiss.SwissPairingEngineTests | 18 |
+| Core.Commands.PlayerCommandsTests | 20 | Core.Swiss.SwissPropertyTests | 4 |
+| Core.Commands.SwissCommandsTests | 34 | Core.Swiss.SwissProposalCacheTests | 6 |
+| Core.Domain.DomainBasicsTests | 35 | Core.Swiss.SwissSampleTests | 3 |
+| Core.Hashing.StateHasherTests | 26 | Core.Performance（Swiss、Standings） | 2 |
+| Core.Import.PlayerCsvImportTests | 17 | Data.Architecture | 1 |
+| Core.Knockout.KnockoutTests | 15 | Data.FileSystemLockTests | 6 |
+| Core.Layout.LayoutTests | 15 | Data.TournamentFileTests | 17 |
+| Core.Locking.LockManagerTests | 11 | UI.Architecture | 1 |
+| Core.Matching.MaxWeightMatchingTests | 9 | UI.PlayersViewTests | 6 |
+| Core.RoundRobin.RoundRobinTests | 7 | UI.RenderingTests | 9 |
+| Core.Session（Session 12、UndoProperty 1） | 13 | UI.RoundsAndResultsTests | 7 |
+| Core.Standings（Calculator 20、Property 2） | 22 | UI.ShellTests | 13 |
+
+---|---|---|---|
 | Core.Architecture（相依規則、禁用浮點數） | 2 | Core.Swiss.SwissPairingEngineTests | 18 |
 | Core.Commands.PlayerCommandsTests | 20 | Core.Swiss.SwissPropertyTests | 4 |
 | Core.Commands.SwissCommandsTests | 31 | Core.Swiss.SwissSampleTests | 3 |
@@ -69,22 +85,22 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 | 5 | 決定性：打亂輸入順序、重新指派內部 id，結果（以註冊編號表示）相同，≥ 200 組 | 性質測試 | `SwissPropertyTests.Pairing_is_independent_of_input_order_and_internal_ids`：**220 組**、種子 5（N 至 40、0～7 輪歷史） | ✅ |
 | 6 | 無法避免重複對戰時重複場數最小；輪空者全都輪空過時選排名最後者；皆有手算範例 | 單元測試 | `SwissPairingEngineTests.Unavoidable_repeat_is_kept_to_the_minimum`（6 人、A 已與全員交手 → 重複 1 場，配對 A-F B-E C-D 附推導）、`When_everyone_had_a_bye_the_last_ranked_player_gets_it`；補充 `Bye_goes_to_lowest_ranked_player_without_previous_bye`、`Avoiding_repeats_takes_priority_over_avoiding_repeated_bye` | ✅ |
 | 7 | 先後手：「次數較少者先手」「次數相同看上一場」「仍相同看排名」 | 單元測試 | `Colors_fewer_whites_gets_white`、`Colors_equal_whites_previous_black_gets_white`、`Colors_still_equal_higher_rank_gets_white`（3 例）、`Colors_previous_black_beats_no_previous_game` | ✅ |
-| 8 | 400 人 9 輪：每輪每位在籍選手恰好一次、無重複輪空、無重複對戰、每輪耗時符合上限 | 效能測試 | `SwissPerformanceTests.Full_400_player_9_round_tournament_meets_rules_and_time_limit`（Release）。實測見[第 3 節](#3-效能實測)：最慢 **0.93 秒** < 3 秒 | ✅ |
+| 8 | 400 人 9 輪：每輪每位在籍選手恰好一次、無重複輪空、無重複對戰、每輪耗時符合上限 | 效能測試 | `SwissPerformanceTests.Full_400_player_9_round_tournament_meets_rules_and_time_limit`（Release）。實測見[第 3 節](#3-效能實測)：最慢 **0.72 秒** < 3 秒 | ✅ |
 | 9 | 配對可取消、進度單調遞增；任何時間點取消，賽事檔與取消前逐位元組一致 | 單元測試 | `SwissPairingEngineTests.Progress_is_monotonic_and_ends_at_100`、`Cancellation_at_any_progress_point_throws_without_result`（每個進度點各取消一次）；`TournamentFileTests.Cancelled_pairing_leaves_file_byte_identical`（真實 SQLite 檔、每個進度點取消後比對 SHA-256）；UI：`Background_work_can_be_cancelled_without_changing_state` | ✅ |
 | 10 | 循環賽 N = 2～64：每對恰好一次（雙循環兩次）、每輪至多一次、奇數時輪空次數相同、先後手差 ≤ 1、雙循環第二循環互換 | 性質測試 | `RoundRobinTests.Schedule_properties_hold_for_2_to_64_players`（63 個 N × 單／雙循環，全部性質）；手算 `Schedule_matches_hand_calculated_sample`（單循環 7 人、雙循環 4 人） | ✅ |
 | 11 | 循環賽進行中退賽：其後場次為棄權、對手得 2 半分；輪空依設定計分 | 單元測試 | `RoundRobinTests.Withdrawal_during_round_robin_forfeits_later_games`、`Bye_points_follow_setting_in_round_robin`（0／1／2） | ✅ |
 | 12 | 淘汰籤表 N = 2～128 種子位置、輪空位置一致，輪空只在第 1 輪且屬於最高種子；N = 11 與預期檔逐格比對 | 性質＋單元 | `KnockoutTests.Seeding_and_byes_hold_for_2_to_128_players`（以獨立的性質刻畫標準位置：每組和為 S+1 且較小種子構成 S/2 的標準位置；輪空 = 種子 1..S−N 且只在第 1 輪）、`Standard_positions_for_small_sizes`（2／4／8）、`Bracket_for_11_players_matches_expected_file_cell_by_cell`（`samples/knockout/expected-bracket-11.txt` 16 格） | ✅ |
 | 13 | 淘汰賽更正勝者：連鎖清除範圍正確、需確認、可一步復原；退賽者場次以對手晉級 | 單元測試 | `Correcting_winner_lists_cascade_requires_confirmation_and_clears_dependents`（手算範例：清除準決賽 1、決賽、季軍戰）、`Correction_with_cascade_is_undone_in_one_step`、`Correction_without_dependents_has_empty_impact`、`Withdrawn_players_opponent_advances_immediately_when_known`、`Withdrawn_players_later_match_is_walkover_once_opponent_is_known`；UI：`RenderingTests.Correcting_knockout_winner_lists_cascade_and_applies_after_confirmation` | ✅ |
-| 14 | 瑞士制更正已完成輪次後：較後輪次標示過期或維持不變，系統不自行改動已發布配對；「從第 k 輪重新配對」可執行並可復原 | 單元測試 | `Correction_that_changes_next_proposal_marks_later_round_stale_without_touching_it`、`Correction_that_does_not_change_next_proposal_keeps_round_valid`、`Manually_adjusted_round_is_not_stale_by_itself`、`Repair_from_round_requires_confirmed_impact_and_regenerates_draft`、`Repair_from_round_is_undoable_through_session`；UI：`Stale_rounds_are_flagged_and_repair_requires_confirmation` | ✅ |
+| 14 | 瑞士制更正已完成輪次後：較後輪次標示過期或維持不變，系統不自行改動已發布配對；「從第 k 輪重新配對」可執行並可復原 | 單元測試 | `Correction_that_changes_next_proposal_marks_later_round_stale_without_touching_it`、`Correction_that_does_not_change_next_proposal_keeps_round_valid`、`Manually_adjusted_round_is_not_stale_by_itself`、`Repair_from_round_requires_confirmed_impact_and_regenerates_draft`、`Repair_from_round_is_undoable_through_session`、`Withdrawal_in_published_round_does_not_make_it_stale`、`Withdrawal_of_bye_player_in_published_round_does_not_make_it_stale`、`Withdrawal_does_not_hide_real_staleness_from_corrections`、`SwissProposalCacheTests`（6 例，快取與不快取結果相同）；UI：`Stale_rounds_are_flagged_and_repair_requires_confirmation` | ✅ |
 | 15 | 同分者名次相同、下一名次跳號（1、2、2、4）；棄權、輪空、雙方棄權的得分與假設一致 | 單元測試 | `StandingsCalculatorTests.Competition_ranking_skips_after_ties`、`Forfeit_scores_follow_assumptions`（3 例）、`Bye_scores_follow_tournament_setting`（3 例）、`DomainBasicsTests.Result_points_follow_assumptions`（7 例）；12 人範例最終榜出現並列第 3、下一名第 5 | ✅ |
 | 16 | 同分判定完整手算範例（直接對戰適用與不適用、分出較小群組後重新比較、虛擬對手、去掉最低分、退賽對手）與預期檔逐項一致 | 單元測試 | `Tiebreak_sample_matches_expected_file_item_by_item`（`samples/tiebreak/`：9 人 4 輪，README 逐項計算）；`SwissSampleTests.Final_standings_match_hand_calculation`（12 人範例） | ✅ |
 | 17 | 成績登錄順序不影響結果；半分總和守恆式 | 性質測試 | `StandingsPropertyTests.Result_entry_order_does_not_affect_standings`（200 組、種子 17）、`Total_half_points_are_conserved`（300 組、種子 1717，含部分未登錄） | ✅ |
-| 18 | 存取往返無損；版本過新、損毀、非本程式檔案時顯示明確訊息且不修改檔案；舊版可升級並先備份 | 單元測試 | `Committed_transitions_round_trip_losslessly`（24 組隨機操作序列，逐段重新開檔比對雜湊）、`Create_then_open_round_trips_state`、`Too_new_version_…`、`Corrupted_file_…`、`Non_sqlite_file_…`、`Foreign_sqlite_database_…`（皆比對檔案 SHA-256 不變）、`Truncated_file_is_rejected`、`Missing_file_has_readable_message`、`Old_version_is_backed_up_then_upgraded`（備份位元組與原檔相同）、`Second_upgrade_backup_name_uses_injected_clock` | ✅ |
-| 19 | 鎖定：第二個程式被拒並顯示持有者；殘留鎖確認後接手；他機持有不可自動接手；關閉與當掉後狀態正確 | 單元測試（注入時鐘與程序檢查） | `LockManagerTests`（10 例：第二程式拒絕、他機持有中不可強制、正常關閉釋放、當機殘留需確認、程序仍在則拒絕、PID 重用、他機需確認字串、內容損毀、電腦名稱大小寫）；`FileSystemLockTests`（6 例，真實檔案系統）；UI：鎖定提示 3 例。**實機**：強制結束程式後重開出現殘留鎖提示並成功接手；正常關閉後鎖定檔已刪除 | ✅ |
+| 18 | 存取往返無損；版本過新、損毀、非本程式檔案時顯示明確訊息且不修改檔案；舊版可升級並先備份 | 單元測試 | `Committed_transitions_round_trip_losslessly`（24 組隨機操作序列，逐段重新開檔比對雜湊）、`Create_then_open_round_trips_state`、`Too_new_version_…`、`Corrupted_file_…`、`Non_sqlite_file_…`、`Foreign_sqlite_database_…`（皆比對檔案 SHA-256 不變）、`Truncated_file_is_rejected`、`Missing_file_has_readable_message`、`Old_version_is_backed_up_then_upgraded`（備份位元組與原檔相同）、`Second_upgrade_backup_name_uses_injected_clock`、`Hot_journal_left_by_a_crash_is_rolled_back_on_open`（當機留下的熱日誌自動回滾）；UI：`Recovery_after_crash_is_reported_when_opening` | ✅ |
+| 19 | 鎖定：第二個程式被拒並顯示持有者；殘留鎖確認後接手；他機持有不可自動接手；關閉與當掉後狀態正確 | 單元測試（注入時鐘與程序檢查） | `LockManagerTests`（11 例：開啟本程式已開著的檔案、第二程式拒絕、他機持有中不可強制、正常關閉釋放、當機殘留需確認、程序仍在則拒絕、PID 重用、他機需確認字串、內容損毀、電腦名稱大小寫）；`FileSystemLockTests`（6 例，真實檔案系統）；UI：鎖定提示 3 例。**實機**：強制結束程式後重開出現殘留鎖提示並成功接手；正常關閉後鎖定檔已刪除 | ✅ |
 | 20 | 復原與重做 ≥ 50 層，涵蓋所有操作種類；每步復原後整個賽事的雜湊與該步之前相同 | 性質測試 | `UndoPropertyTests.Every_undo_restores_exact_previous_state_and_redo_reapplies`（45 組、種子 20、每組 ≥ 50 步，逐步復原比對雜湊、再逐步重做比對；並斷言 17 種命令全部出現）；`TournamentSessionTests.Undo_supports_at_least_fifty_levels` | ✅ |
 | 21 | 版面計算：各格無重疊、連線端點正確、分頁無遺漏與重複；SVG 決定性 | 單元＋bUnit | `LayoutTests`（N=2..128 無重疊且在頁內、連線端點與正交、父居中、籤表分頁 6 例、交叉表分頁 4 例含 400 人、決定性）；bUnit：`Bracket_svg_is_deterministic`、`Bracket_svg_draws_every_box_and_connector_at_layout_coordinates`、`Crosstable_svg_is_deterministic_and_draws_every_cell`、`Printable_bracket_renders_each_paginated_page` | ✅ |
-| 22 | 400 人積分榜重算符合上限；400 列時 DOM 渲染列數遠少於 400 | 效能＋bUnit | `StandingsPerformanceTests`：**1.3 ms** < 200 ms；`PlayersViewTests.Four_hundred_players_are_virtualized`：模擬 520 px 可視區時只渲染 10～40 列（無可視區資訊時亦 ≤ 100 列） | ✅ |
-| 23 | 核心與 UI 邏輯有單元測試，≥ 180 個案例（含 ≥ 7 組性質測試），dotnet test 全數通過 | 執行測試 | **307 個案例**、全數通過；以隨機輸入、固定種子的性質測試 11 組（第 4 節） | ✅ |
+| 22 | 400 人積分榜重算符合上限；400 列時 DOM 渲染列數遠少於 400 | 效能＋bUnit | `StandingsPerformanceTests`：**1.4 ms** < 200 ms；`PlayersViewTests.Four_hundred_players_are_virtualized`：模擬 520 px 可視區時只渲染 10～40 列（無可視區資訊時亦 ≤ 100 列） | ✅ |
+| 23 | 核心與 UI 邏輯有單元測試，≥ 180 個案例（含 ≥ 7 組性質測試），dotnet test 全數通過 | 執行測試 | **319 個案例**、全數通過；以隨機輸入、固定種子的性質測試 12 組（第 4 節） | ✅ |
 | 24 | README 含建置步驟、截圖、架構、瑞士制最佳化與同分判定演算法、效能數據、設計取捨與已知限制 | 檢視 README | `README.md` 各節齊備；截圖 6 張為實機畫面（`docs/screenshots/`） | ✅ |
 | 25 | GitHub Actions 在 Windows runner 建置並測試，CI 綠燈，README 有徽章，上傳 win-x64 發佈檔 | 檢視 Actions | `.github/workflows/ci.yml`；README 徽章指向 `hn83320589/TourneyDesk`；run #39376930237 成功並上傳 `TourneyDesk-win-x64` | ✅ |
 
@@ -92,25 +108,26 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 
 ## 3. 效能實測
 
-`dotnet test -c Release --filter Category=Performance`，單獨執行、連續三次：
+`dotnet test -c Release --filter Category=Performance`，單獨執行、連續三次（外部審查後的引擎優化之後）：
 
 | 輪次 | 第 1 次 | 第 2 次 | 第 3 次 |
 |---|---|---|---|
-| 1 | 178 | 178 | 193 |
-| 2 | 739 | 799 | 745 |
-| 3 | 538 | 543 | 552 |
-| 4 | 449 | 627 | 640 |
-| 5 | 452 | 499 | 506 |
-| 6 | 778 | 763 | 780 |
-| 7 | 645 | 569 | 605 |
-| 8 | 743 | 787 | 807 |
-| 9 | 903 | 929 | 902 |
-| **最慢** | **903 ms** | **929 ms** | **902 ms** |
+| 1 | 151 | 222 | 229 |
+| 2 | 715 | 698 | 673 |
+| 3 | 459 | 459 | 457 |
+| 4 | 395 | 408 | 398 |
+| 5 | 248 | 241 | 239 |
+| 6 | 354 | 342 | 334 |
+| 7 | 282 | 322 | 278 |
+| 8 | 361 | 368 | 341 |
+| 9 | 428 | 463 | 440 |
+| **最慢** | **715 ms** | **698 ms** | **673 ms** |
 
-（單位 ms；需求 < 3000 ms。i7-13700 為大小核架構，數值會因排程落點略有波動；開發期量測最慢為 760 ms。）
+（單位 ms；需求 < 3000 ms。優化前同一測試最慢約 0.90～0.93 秒。）
 
-- 400 人積分榜重算：1.3～1.4 ms（需求 < 200 ms）。
-- 參考：500 人（人數上限）每輪最慢 2.1 秒。
+- 400 人積分榜重算：1.4～1.5 ms（需求 < 200 ms）。
+- 參考：500 人（人數上限）每輪最慢 1.96 秒（優化前 2.3 秒）。外部審查在較慢的沙盒中於優化前量到 3.5 秒；需求的 3 秒限制是針對 400 人。
+- 過期判定（400 人 9 輪）：首次 4.5 秒；登錄最新一輪成績後 8 ms；更正第 5 輪後 1.7 秒（只重算第 6～9 輪）。
 - CI 雲端 runner 以 `TOURNEYDESK_PERF_FACTOR=2` 放寬門檻為 6 秒。
 
 ---
@@ -131,7 +148,8 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 | 8 | Blossom vs 暴力（完全圖，含緊邊性質） | 20261020 | 400 |
 | 9 | Blossom vs 暴力（稀疏圖） | 7 | 300 |
 | 10 | 賽事檔往返無損 | 18 | 24 |
-| 11 | （窮舉）循環賽 N = 2～64、淘汰賽 N = 2～128 | — | 126／127 |
+| 11 | 過期判定：快取與不快取結果相同 | 33 | 40 |
+| 12 | （窮舉）循環賽 N = 2～64、淘汰賽 N = 2～128 | — | 126／127 |
 
 **參考解獨立性**：`tests/TourneyDesk.Core.Tests/Reference/` 只讀取賽事原始資料（選手、對局、輪空），自行計算分數、排名、曾交手、輪空紀錄與先後手，不呼叫正式程式碼的任何計算；窮舉以「輪空者 × 全部完美匹配」逐一比較字典序，DP 以位元遮罩求 ①～④。
 
@@ -210,3 +228,19 @@ Debug 組態：305 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 - **實體列印**：只驗證到 WebView2 列印預覽，未送到實體印表機。
 - **淘汰籤表列印**：分頁由版面測試與 bUnit 驗證，未在實機列印預覽中逐頁檢視。
 - 效能數值依硬體與排程有波動；500 人（上限）最慢約 2.1 秒，餘裕較小。
+
+---
+
+## 10. 外部審查回報與處置
+
+收到一份外部審查（以獨立 oracle 與 Python sqlite3 重現）後，逐項以**先寫會失敗的測試、再修正**的方式處理：
+
+| # | 回報 | 本機重現 | 處置 | 回歸測試 | 提交 |
+|---|---|---|---|---|---|
+| 1 | **當機留下的日誌檔讓賽事檔打不開**（最嚴重）：唯讀檢查無法回復熱日誌，SQLite 回傳 READONLY_ROLLBACK，被歸為「損毀」 | ✅ 以 Microsoft.Data.Sqlite 重現：錯誤 8／776，訊息「賽事檔已損毀或無法讀取：賽事檔為唯讀，無法寫入」。第一次重現因資料量太小、交易未寫回主檔而**未**重現，改為迫使交易途中寫回主檔後才真正重現 | 唯讀錯誤且有 `-journal` 時判為 `NeedsRecovery`；開檔（已持鎖）時以讀寫連線讓 SQLite 自動回滾，再重新檢查；開檔通知告知使用者 | `Hot_journal_left_by_a_crash_is_rolled_back_on_open`（斷言主檔確實被改動、回滾後資料等於交易前、日誌已刪除）、`Recovery_after_crash_is_reported_when_opening` | `bab9aa8` |
+| 2 | **正常退賽讓目前輪次被標示「過期」** | ✅ 有對局、輪空兩種情境皆重現 | 判定第 k 輪時，引擎建議中退賽生效輪 ≤ k 的選手（發布後才退賽）仍視為該輪參賽者 | 兩個情境測試＋「退賽後再更正成績仍判過期」守衛測試 | `ba1c5b2` |
+| 3 | **過期判定每次變更都重算所有輪次**，連續登錄成績時 CPU 滿載 | ✅ 400 人 9 輪無快取每次約 4.9 秒 | 以各輪輸入指紋快取引擎建議（引擎為純函式，快取精確） | `SwissProposalCacheTests` 6 例（含快取與不快取結果相同的性質測試） | `e5f7501` |
+| 4 | 次要：500 人每輪最慢 3.5 秒（審查者環境） | 本機 2.3 秒 | 第二階段只以剩餘緊邊的成本範圍編碼主要成本，每段多放幾層：500 人最慢 1.96 秒、400 人 0.72 秒 | 既有窮舉（含隨機限制層數）、DP、決定性性質測試全部通過 | `3e1b93a` |
+| 5 | 次要：開啟自己已開著的檔案時，訊息顯示自己的程序 | ✅ | 持有者為本機同一 PID 時回報「此賽事檔已在本程式中開啟。」 | `Opening_a_file_this_program_already_holds_says_so` | `64788a4` |
+| 6 | 次要：範例檔逐項預期值未逐一核對 | — | 範例預期值與引擎結果逐項比對的測試已存在（`SwissSampleTests`、`Tiebreak_sample_…`、`Schedule_matches_hand_calculated_sample`、`Bracket_for_11_players_…`），且 12 人範例的 ≤ 12 人輪次另與窮舉參考解比對 | 既有 | — |
+
