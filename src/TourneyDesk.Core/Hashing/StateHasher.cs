@@ -25,6 +25,9 @@ public static class StateHasher
         w.Int(state.Rounds.Length);
         foreach (var r in state.Rounds)
             WriteRound(w, r);
+        w.Bool(state.Bracket is not null);
+        if (state.Bracket is not null)
+            WriteBracket(w, state.Bracket);
         return w.Finish();
     }
 
@@ -72,6 +75,32 @@ public static class StateHasher
         w.Bool(r.EngineProposal is not null);
         if (r.EngineProposal is not null)
             WritePairing(w, r.EngineProposal);
+    }
+
+    private static void WriteBracket(CanonicalWriter w, Bracket b)
+    {
+        w.Int(b.Size);
+        w.Int(b.Seeds.Length);
+        foreach (var id in b.Seeds)
+            w.Int(id);
+        w.Int(b.Matches.Length);
+        foreach (var m in b.Matches)
+        {
+            w.Int(m.Id);
+            w.Int(m.Round);
+            w.Int(m.Position);
+            w.Int((int)m.A.Kind);
+            w.Int(m.A.Value);
+            w.Int((int)m.B.Kind);
+            w.Int(m.B.Value);
+            w.Bool(m.IsThirdPlace);
+            w.Bool(m.Outcome is not null);
+            if (m.Outcome is not null)
+            {
+                w.Int(m.Outcome.Winner);
+                w.Int((int)m.Outcome.Kind);
+            }
+        }
     }
 
     private static void WritePairing(CanonicalWriter w, Pairing p)

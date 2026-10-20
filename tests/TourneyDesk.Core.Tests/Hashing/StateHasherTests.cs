@@ -50,7 +50,10 @@ public class StateHasherTests
 
     /// <summary>守衛：狀態型別新增欄位時，這個測試會失敗，提醒同步更新 StateHasher。</summary>
     [Theory]
-    [InlineData(typeof(TournamentState), 5)]
+    [InlineData(typeof(TournamentState), 6)]
+    [InlineData(typeof(Bracket), 3)]
+    [InlineData(typeof(KnockoutMatch), 7)]
+    [InlineData(typeof(KnockoutOutcome), 2)]
     [InlineData(typeof(TournamentSettings), 5)]
     [InlineData(typeof(Player), 6)]
     [InlineData(typeof(Round), 6)]

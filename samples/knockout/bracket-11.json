@@ -1,0 +1,19 @@
+{
+  // 單淘汰 11 人（含季軍戰）。籤表與連鎖清除手算見 README.md
+  "name": "單淘汰 11 人範例",
+  "format": "SingleElimination",
+  "thirdPlaceMatch": true,
+  "players": [
+    { "regNo": 1, "name": "林一", "rating": 1990 },
+    { "regNo": 2, "name": "陳二", "rating": 1980 },
+    { "regNo": 3, "name": "張三", "rating": 1970 },
+    { "regNo": 4, "name": "李四", "rating": 1960 },
+    { "regNo": 5, "name": "王五", "rating": 1950 },
+    { "regNo": 6, "name": "趙六", "rating": 1940 },
+    { "regNo": 7, "name": "孫七", "rating": 1930 },
+    { "regNo": 8, "name": "周八", "rating": 1920 },
+    { "regNo": 9, "name": "吳九", "rating": 1910 },
+    { "regNo": 10, "name": "鄭十", "rating": 1900 },
+    { "regNo": 11, "name": "馮十一", "rating": 1890 }
+  ]
+}

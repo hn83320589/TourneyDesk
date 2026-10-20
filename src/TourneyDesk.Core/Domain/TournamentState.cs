@@ -10,7 +10,8 @@ public sealed record TournamentState(
     ImmutableSortedDictionary<int, Player> Players,
     ImmutableArray<Round> Rounds,
     int NextPlayerId,
-    int NextRegNo)
+    int NextRegNo,
+    Bracket? Bracket = null)
 {
     public const int MaxPlayers = 500;
 
@@ -20,8 +21,8 @@ public sealed record TournamentState(
         return new TournamentState(settings, ImmutableSortedDictionary<int, Player>.Empty, [], 1, 1);
     }
 
-    /// <summary>已產生任何賽程即視為開賽（循環賽與淘汰賽此後不可增刪選手）。</summary>
-    public bool IsStarted => !Rounds.IsEmpty;
+    /// <summary>已產生任何賽程（輪次或籤表）即視為開賽（循環賽與淘汰賽此後不可增刪選手）。</summary>
+    public bool IsStarted => !Rounds.IsEmpty || Bracket is not null;
 
     public Player GetPlayer(int id) =>
         Players.TryGetValue(id, out var p) ? p : throw new DomainException($"找不到選手（內部編號 {id}）。");
@@ -33,7 +34,8 @@ public sealed record TournamentState(
 
     public Round? LastRound => Rounds.IsEmpty ? null : Rounds[^1];
 
-    public bool IsScheduled(int playerId) => Rounds.Any(r => r.Involves(playerId));
+    public bool IsScheduled(int playerId) =>
+        Rounds.Any(r => r.Involves(playerId)) || (Bracket?.Contains(playerId) ?? false);
 
     public TournamentState WithPlayer(Player player) => this with { Players = Players.SetItem(player.Id, player) };
 
