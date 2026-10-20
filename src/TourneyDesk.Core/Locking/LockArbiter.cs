@@ -39,6 +39,8 @@ public static class LockArbiter
         {
             case LockProbeKind.None:
                 return new LockDecision(LockDecisionKind.Acquire, null, "");
+            case LockProbeKind.Held when IsSelf(probe.Holder, self):
+                return new LockDecision(LockDecisionKind.Denied, probe.Holder, "此賽事檔已在本程式中開啟。");
             case LockProbeKind.Held:
                 return new LockDecision(LockDecisionKind.Denied, probe.Holder,
                     $"此賽事檔正由{HolderText(probe.Holder)}使用中，無法開啟。");
@@ -66,6 +68,10 @@ public static class LockArbiter
         return new LockDecision(LockDecisionKind.ConfirmStaleTakeover, holder,
             $"發現殘留的鎖定紀錄（{HolderText(holder)}，該程序已不存在）。是否接手？");
     }
+
+    private static bool IsSelf(LockInfo? holder, ProcessIdentity self) =>
+        holder is not null && holder.ProcessId == self.ProcessId
+        && string.Equals(holder.MachineName, self.MachineName, StringComparison.OrdinalIgnoreCase);
 
     public static string HolderText(LockInfo? holder) =>
         holder is null

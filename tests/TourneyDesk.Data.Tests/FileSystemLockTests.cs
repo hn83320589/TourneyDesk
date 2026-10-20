@@ -24,7 +24,8 @@ public class FileSystemLockTests : IDisposable
         using var first = Manager(path, self).Acquire();
 
         var probe = new FileSystemLockFile(path).Probe();
-        var decision = Manager(path, self).Check();
+        var otherProgram = self with { ProcessId = self.ProcessId + 1 }; // 同一台電腦上的另一個程式
+        var decision = Manager(path, otherProgram).Check();
 
         Assert.Equal(LockProbeKind.Held, probe.Kind);
         Assert.Equal(self.ProcessId, probe.Holder!.ProcessId);

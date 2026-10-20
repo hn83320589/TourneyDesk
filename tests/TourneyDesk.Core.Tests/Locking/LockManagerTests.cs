@@ -40,6 +40,17 @@ public class LockManagerTests
     }
 
     [Fact]
+    public void Opening_a_file_this_program_already_holds_says_so()
+    {
+        using var first = Manager(pid: 100).Acquire();
+
+        var decision = Manager(pid: 100).Check();
+
+        Assert.Equal(LockDecisionKind.Denied, decision.Kind);
+        Assert.Equal("此賽事檔已在本程式中開啟。", decision.Message);
+    }
+
+    [Fact]
     public void Held_lock_from_other_machine_cannot_be_forced()
     {
         using var first = Manager("PC-B").Acquire();
