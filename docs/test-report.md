@@ -55,21 +55,6 @@ Debug 組態：317 通過、2 略過（`ReleaseOnlyFact` 效能測試；Debug �
 | Core.Session（Session 12、UndoProperty 1） | 13 | UI.RoundsAndResultsTests | 7 |
 | Core.Standings（Calculator 20、Property 2） | 22 | UI.ShellTests | 13 |
 
----|---|---|---|
-| Core.Architecture（相依規則、禁用浮點數） | 2 | Core.Swiss.SwissPairingEngineTests | 18 |
-| Core.Commands.PlayerCommandsTests | 20 | Core.Swiss.SwissPropertyTests | 4 |
-| Core.Commands.SwissCommandsTests | 31 | Core.Swiss.SwissSampleTests | 3 |
-| Core.Domain.DomainBasicsTests | 35 | Core.Performance（Swiss、Standings） | 2 |
-| Core.Hashing.StateHasherTests | 26 | Data.Architecture | 1 |
-| Core.Import.PlayerCsvImportTests | 17 | Data.FileSystemLockTests | 6 |
-| Core.Knockout.KnockoutTests | 15 | Data.TournamentFileTests | 16 |
-| Core.Layout.LayoutTests | 15 | UI.Architecture | 1 |
-| Core.Locking.LockManagerTests | 10 | UI.PlayersViewTests | 6 |
-| Core.Matching.MaxWeightMatchingTests | 9 | UI.RenderingTests | 9 |
-| Core.RoundRobin.RoundRobinTests | 7 | UI.RoundsAndResultsTests | 7 |
-| Core.Session（Session 12、UndoProperty 1） | 13 | UI.ShellTests | 12 |
-| Core.Standings（Calculator 20、Property 2） | 22 | | |
-
 ---
 
 ## 2. 驗收標準逐項對照
