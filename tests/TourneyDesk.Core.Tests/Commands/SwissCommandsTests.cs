@@ -277,9 +277,15 @@ public class SwissCommandsTests
     [Fact]
     public void Withdraw_rejects_twice()
     {
-        var s = SwissFlow.NewSwiss(4).Then(new WithdrawPlayer(1, 1));
+        var s = SwissFlow.NewSwiss(4).NextRound().Then(new WithdrawPlayer(1, 2));
 
         Assert.Contains("已經退賽", s.RuleViolation(new WithdrawPlayer(1, 2)));
+    }
+
+    [Fact]
+    public void Withdraw_before_start_points_to_delete()
+    {
+        Assert.Equal("賽事尚未開始，請直接刪除選手。", SwissFlow.NewSwiss(4).RuleViolation(new WithdrawPlayer(1, 1)));
     }
 
     [Fact]

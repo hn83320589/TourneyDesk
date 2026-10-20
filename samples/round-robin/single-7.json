@@ -1,0 +1,14 @@
+{
+  // 單循環 7 人。手算見 README.md
+  "name": "單循環 7 人範例",
+  "format": "RoundRobin",
+  "players": [
+    { "regNo": 1, "name": "林一", "rating": 1600 },
+    { "regNo": 2, "name": "陳二", "rating": 1900 },
+    { "regNo": 3, "name": "張三", "rating": 1750 },
+    { "regNo": 4, "name": "李四", "rating": 1500 },
+    { "regNo": 5, "name": "王五", "rating": 1820 },
+    { "regNo": 6, "name": "趙六", "rating": 1400 },
+    { "regNo": 7, "name": "孫七", "rating": 1300 }
+  ]
+}

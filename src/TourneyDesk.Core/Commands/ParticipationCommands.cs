@@ -15,6 +15,8 @@ public sealed record WithdrawPlayer(int PlayerId, int FromRound) : ITournamentCo
         if (state.Settings.Format == TournamentFormat.SingleElimination)
             throw new DomainException("淘汰賽請在籤表中處理退賽。");
         var player = state.GetPlayer(PlayerId);
+        if (!state.IsStarted)
+            throw new DomainException("賽事尚未開始，請直接刪除選手。");
         if (player.IsWithdrawn)
             throw new DomainException($"{Describe.Player(state, PlayerId)} 已經退賽。");
         if (FromRound < player.FirstRound)
@@ -32,6 +34,14 @@ public sealed record WithdrawPlayer(int PlayerId, int FromRound) : ITournamentCo
             {
                 next = next.TruncateRounds(round.Number);
                 audit.Add(context.Audit("作廢草稿", $"第 {round.Number} 輪", "含退賽選手", null));
+                continue;
+            }
+
+            if (round.Bye == PlayerId)
+            {
+                // 分數凍結：退賽後的輪空（循環賽固定賽程）不再計分
+                next = next.WithRound(next.GetRound(round.Number) with { Bye = null });
+                audit.Add(context.Audit("取消輪空", $"第 {round.Number} 輪 {Describe.Player(state, PlayerId)}", "輪空", null));
                 continue;
             }
 

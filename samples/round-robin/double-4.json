@@ -1,0 +1,11 @@
+{
+  // 雙循環 4 人。手算見 README.md
+  "name": "雙循環 4 人範例",
+  "format": "DoubleRoundRobin",
+  "players": [
+    { "regNo": 1, "name": "林一", "rating": 1500 },
+    { "regNo": 2, "name": "陳二", "rating": 1700 },
+    { "regNo": 3, "name": "張三", "rating": 1600 },
+    { "regNo": 4, "name": "李四", "rating": 1800 }
+  ]
+}
