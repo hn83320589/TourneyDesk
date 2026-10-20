@@ -34,6 +34,7 @@ public class RoundsAndResultsTests : UiTestBase
         OpenWith(SwissFlow.NewSwiss(4).NextRound().Results(GameResult.WhiteWin, GameResult.WhiteWin).Draft());
         var cut = RenderRounds();
         Assert.Contains("與最佳解相同", cut.Find(".evaluation").TextContent);
+        Assert.Contains("screen-only", cut.Find(".evaluation").ClassName); // 列印對戰表時不得出現比較面板
 
         cut.Find("[data-player='2']").Click();
         cut.Find("[data-player='4']").Click();

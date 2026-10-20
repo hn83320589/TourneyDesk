@@ -29,7 +29,7 @@
 
 @if (!Workspace.StaleRounds.IsEmpty)
 {
-    <div class="panel stale-warning">
+    <div class="panel stale-warning screen-only">
         <span class="badge warn">過期</span>
         依目前成績重新計算，第 @string.Join("、", Workspace.StaleRounds) 輪的配對已與發布時的最佳建議不同。系統不會自行改動已發布的配對。
         <button class="repair" @onclick="() => PrepareRepairAsync(Workspace.StaleRounds[0])">從第 @Workspace.StaleRounds[0] 輪起重新配對…</button>
@@ -54,7 +54,7 @@ else
     {
         var current = SwissRoundPlanner.Evaluate(State, round);
         var best = round.EngineProposal is { } p ? SwissObjective.Evaluate(SwissRoundInput.FromState(State, round.Number), p) : current;
-        <div class="panel evaluation">
+        <div class="panel evaluation screen-only">
             <h3>與最佳解比較</h3>
             <table class="grid">
                 <thead><tr><th></th><th class="num">① 重複對戰</th><th class="num">② 重複輪空</th><th class="num">③ 輪空者排名</th><th class="num">④ 分差平方和</th></tr></thead>

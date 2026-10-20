@@ -178,7 +178,7 @@ svg.crosstable text { font-size: 12px; fill: var(--text); }
     @page { margin: 12mm; }
     html, body { background: #fff; height: auto; }
     .shell { display: block; height: auto; }
-    .topbar, .tabs, .notice, .overlay, .screen-only, .page-header button, .page-header select { display: none !important; }
+    .topbar, .tabs, .notice, .overlay, .screen-only, .page-header { display: none !important; }
     .content { overflow: visible; padding: 0; }
     .print-only { display: block; }
     .panel { border: none; padding: 0; }
